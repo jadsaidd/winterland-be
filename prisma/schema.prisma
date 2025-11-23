@@ -1,0 +1,730 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String  @id @default(cuid())
+  email       String? @unique
+  phoneNumber String? @unique
+  name        String?
+  profileUrl  String?
+
+  status UserStatus @default(ACTIVE)
+
+  isVerified      Boolean @default(false)
+  isEmailVerified Boolean @default(false)
+  isPhoneVerified Boolean @default(false)
+
+  platform UserPlatform? @default(Mobile)
+
+  lastLogin           DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  selectedLanguage String? @default("en")
+
+  googleId            String?  @unique
+  googleVerifiedEmail Boolean?
+  appleId             String?  @unique
+  profilePictureUrl   String?
+
+  isTestUser Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  countryCodeId String?
+  countryCode   CountryCode? @relation(fields: [countryCodeId], references: [id], onDelete: SetNull)
+
+  verifications       Verification[]
+  userRoles           UserRole[]
+  activityLogs        ActivityLog[]
+  refreshTokens       RefreshToken[]
+  uploadedMedia       Media[]
+  scheduleWorkers     ScheduleWorker[]
+  userApplicationData UserApplicationData?
+  wallets             Wallet[]
+  transactions        Transaction[]
+  carts               Cart[]
+  bookings            Booking[]
+
+  @@index([status])
+  @@index([isTestUser])
+  @@index([platform])
+  @@map("users")
+}
+
+model UserApplicationData {
+  id String @id @default(cuid())
+
+  deviceId    String?
+  deviceModel String?
+  osName      String?
+  osVersion   String?
+  appPlatform String?
+  fcmToken    String?
+
+  isGuestUser Boolean @default(false)
+
+  timezoneName   String? @default("UTC")
+  timezoneOffset Int?
+
+  appVersion  String?
+  buildNumber String?
+
+  lastKnownIpAddress String?
+  currentIpAddress   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_application_data")
+}
+
+model CountryCode {
+  id      String  @id @default(cuid())
+  country String
+  flagUrl String?
+  isoCode String?
+  code    String  @unique
+  digits  Int
+  active  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  flagMediaId String?
+  flagMedia   Media?  @relation(fields: [flagMediaId], references: [id], onDelete: SetNull)
+
+  users User[]
+
+  @@index([code])
+  @@index([active])
+  @@map("country_codes")
+}
+
+model Verification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      VerificationType
+  code      String
+  active    Boolean          @default(true)
+  expiresAt DateTime
+  channel   String?
+  status    Json?
+
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([code])
+  @@map("verifications")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  roleType    RoleType @default(CUSTOMER)
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@index([name])
+  @@map("roles")
+}
+
+model Permission {
+  id       String @id @default(cuid())
+  name     String @unique
+  resource String
+  action   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model ActivityLog {
+  id           String  @id @default(cuid())
+  userId       String
+  action       String
+  description  String?
+  ipAddress    String?
+  userAgent    String?
+  resourceType String?
+  resourceId   String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+model ApplicationFeature {
+  id     String  @id @default(cuid())
+  name   String
+  status Boolean
+  config Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@map("application_features")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Media {
+  id      String    @id @default(cuid())
+  url     String
+  type    MediaType @default(IMAGE)
+  context String?
+  meta    Json?
+
+  uploadedBy String?
+  uploader   User?   @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  countryCodeFlags    CountryCode[]
+  eventMedias         EventMedia[]
+  categoryMedias      CategoryMedia[]
+  locationMedias      LocationMedia[]
+  paymentMethodMedias PaymentMethodMedia[]
+
+  @@index([type])
+  @@index([uploadedBy])
+  @@map("media")
+}
+
+model Event {
+  id String @id @default(cuid())
+
+  name        Json
+  eventSlug   String  @unique
+  description Json
+  active      Boolean @default(true)
+
+  originalPrice   Float
+  discountedPrice Float?
+
+  startAt DateTime
+  endAt   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schedules       Schedule[]
+  eventLocations  EventLocation[]
+  eventCategories EventCategory[]
+  eventMedias     EventMedia[]
+  cartItems       CartItem[]
+  bookings        Booking[]
+
+  @@index([active])
+  @@index([startAt])
+  @@index([endAt])
+  @@map("events")
+}
+
+model Category {
+  id String @id @default(cuid())
+
+  title        Json
+  categorySlug String  @unique
+  description  Json
+  active       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventCategories EventCategory[]
+  categoryMedias  CategoryMedia[]
+
+  @@index([active])
+  @@map("categories")
+}
+
+model EventCategory {
+  id String @id @default(cuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, categoryId])
+  @@index([categoryId])
+  @@map("event_categories")
+}
+
+model Location {
+  id String @id @default(cuid())
+
+  name         Json
+  locationSlug String  @unique
+  description  Json
+  active       Boolean @default(true)
+
+  type     LocationType @default(OTHER)
+  capacity Int?
+
+  latitude  Float?
+  longitude Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventLocations EventLocation[]
+  locationMedias LocationMedia[]
+
+  @@index([active])
+  @@index([type])
+  @@index([latitude, longitude])
+  @@map("locations")
+}
+
+model EventLocation {
+  id String @id @default(cuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, locationId])
+  @@index([locationId])
+  @@map("event_locations")
+}
+
+model Schedule {
+  id String @id @default(cuid())
+
+  startAt DateTime
+  endAt   DateTime
+  details Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  scheduleWorkers ScheduleWorker[]
+
+  @@index([startAt, endAt])
+  @@index([eventId])
+  @@index([startAt])
+  @@index([endAt])
+  @@map("schedules")
+}
+
+model ScheduleWorker {
+  id String @id @default(cuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scheduleId String
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, userId])
+  @@index([userId])
+  @@map("schedule_workers")
+}
+
+model Transaction {
+  id String @id @default(cuid())
+
+  amount   Float
+  currency String
+  platform String
+  channel  String
+
+  completedBy String?
+  completedAt DateTime?
+
+  action TransactionType   @default(DEPOSIT)
+  status TransactionStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  walletId String?
+  wallet   Wallet? @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  bookings Booking[]
+
+  @@map("transactions")
+}
+
+model Wallet {
+  id String @id @default(cuid())
+
+  amount         Float  @default(0)
+  previousAmount Float  @default(0)
+  currency       String
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+
+  @@unique([userId, currency])
+  @@index([currency])
+  @@map("wallets")
+}
+
+model PaymentMethod {
+  id String @id @default(cuid())
+
+  name        Json
+  description Json?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  paymentMethodMedias PaymentMethodMedia[]
+  bookings            Booking[]
+
+  @@index([isActive])
+  @@map("payment_methods")
+}
+
+model Cart {
+  id String @id @default(cuid())
+
+  status CartStatus @default(ACTIVE)
+
+  totalAmount    Float  @default(0)
+  discountAmount Float  @default(0)
+  currency       String
+
+  // Checkout tracking
+  checkedOutAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cartItems CartItem[]
+  bookings  Booking[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("carts")
+}
+
+model CartItem {
+  id String @id @default(cuid())
+
+  quantity Int @default(1)
+
+  // Conversion tracking
+  convertedToBooking Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  bookings Booking[]
+
+  @@unique([cartId, eventId])
+  @@index([eventId])
+  @@index([convertedToBooking])
+  @@map("cart_items")
+}
+
+model Booking {
+  id String @id @default(cuid())
+
+  bookingNumber String @unique
+
+  quantity     Int @default(1)
+  usedQuantity Int @default(0)
+
+  isActive Boolean @default(true)
+
+  // Pricing snapshot
+  unitPrice  Float // Price per ticket at booking time
+  totalPrice Float // unitPrice * quantity
+  currency   String
+
+  status BookingStatus @default(PENDING)
+
+  // Cancellation tracking
+  cancelledAt  DateTime?
+  cancelReason String?
+
+  // Optional: for attendance tracking
+  checkedInAt DateTime?
+  qrCode      String?   @unique // Unique QR for ticket validation
+
+  // Metadata
+  notes Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Direct booking: event reference
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+
+  // Cart origin tracking (OPTIONAL - for cart-based bookings)
+  cartId String?
+  cart   Cart?   @relation(fields: [cartId], references: [id], onDelete: Restrict)
+
+  cartItemId String?
+  cartItem   CartItem? @relation(fields: [cartItemId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@index([bookingNumber])
+  @@index([createdAt])
+  @@index([cartId])
+  @@index([cartItemId])
+  @@map("bookings")
+}
+
+// Junction Tables for Media Associations
+model EventMedia {
+  id String @id @default(cuid())
+
+  sortOrder Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  mediaId String
+  media   Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, mediaId])
+  @@index([mediaId])
+  @@map("event_media")
+}
+
+model CategoryMedia {
+  id String @id @default(cuid())
+
+  sortOrder Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  mediaId    String
+  media      Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, mediaId])
+  @@index([mediaId])
+  @@map("category_media")
+}
+
+model LocationMedia {
+  id String @id @default(cuid())
+
+  sortOrder Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  mediaId    String
+  media      Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, mediaId])
+  @@index([mediaId])
+  @@map("location_media")
+}
+
+model PaymentMethodMedia {
+  id String @id @default(cuid())
+
+  sortOrder Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  paymentMethodId String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id], onDelete: Cascade)
+  mediaId         String
+  media           Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([paymentMethodId, mediaId])
+  @@index([mediaId])
+  @@map("payment_method_media")
+}
+
+// Enums
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum UserPlatform {
+  Mobile
+  Dashboard
+}
+
+enum RoleType {
+  WORKER
+  CUSTOMER
+}
+
+enum VerificationType {
+  EMAIL
+  PHONE
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  BANNER
+  OTHER
+}
+
+enum LocationType {
+  STADIUM
+  ARENA
+  THEATRE
+  HALL
+  OUTDOOR
+  INDOOR
+  OTHER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  REFUND
+  PURCHASE
+}
+
+enum CartStatus {
+  ACTIVE
+  CHECKED_OUT
+  ABANDONED
+  EXPIRED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+  COMPLETED
+}

@@ -15,6 +15,17 @@ export interface CategoryMediaDto {
     };
 }
 
+export interface EventCategoryResponseDto {
+    id: string;
+    eventId: string;
+    event: {
+        id: string;
+        name: any;
+        eventSlug: string;
+        active: boolean;
+    };
+}
+
 export interface CategoryResponseDto {
     id: string;
     title: any; // JSON object for dashboard, localized string for mobile
@@ -24,6 +35,7 @@ export interface CategoryResponseDto {
     createdAt: Date;
     updatedAt: Date;
     categoryMedias: CategoryMediaDto[];
+    eventCategories?: EventCategoryResponseDto[];
 }
 
 export interface CategoriesListResponseDto {

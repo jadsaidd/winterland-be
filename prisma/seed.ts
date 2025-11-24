@@ -1,8 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
-import { seedCategories } from './seeders/categories.seed';
+// import { seedCategories } from './seeders/categories.seed';
 import { seedCountryCodes } from './seeders/country-codes.seed';
-import { seedEvents } from './seeders/events.seed';
+// import { seedEvents } from './seeders/events.seed';
 import { seedPaymentMethods } from './seeders/payment-methods.seed';
 import { seedPermissions } from './seeders/permissions.seed';
 import { seedRoles } from './seeders/roles.seed';
@@ -38,12 +38,8 @@ async function main() {
         console.log('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-');
 
         // 6. Seed Categories (no dependencies)
-        await seedCategories();
-        console.log('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-');
-
-        // 7. Seed Events (depends on categories and locations)
-        await seedEvents();
-        console.log('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-');
+        // await seedCategories();
+        // console.log('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-');
 
         console.log('All seeding completed successfully!');
     } catch (error) {

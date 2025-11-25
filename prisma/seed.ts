@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../src/utils/prisma.client';
 
 // import { seedCategories } from './seeders/categories.seed';
 import { seedCountryCodes } from './seeders/country-codes.seed';
@@ -7,8 +7,7 @@ import { seedPaymentMethods } from './seeders/payment-methods.seed';
 import { seedPermissions } from './seeders/permissions.seed';
 import { seedRoles } from './seeders/roles.seed';
 import { seedUsers } from './seeders/users.seed';
-
-const prisma = new PrismaClient();
+// import { seedLocations } from './seeders/locations.seed';
 
 async function main() {
     console.log('Starting database seeding...\n');
@@ -33,7 +32,11 @@ async function main() {
         await seedPaymentMethods();
         console.log('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-');
 
-        // 5. Seed Users (depends on roles and country codes)
+        // 5. Seed Locations (no dependencies)
+        // await seedLocations();
+        // console.log('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-');
+
+        // 6. Seed Users (depends on roles and country codes)
         await seedUsers();
         console.log('-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-');
 

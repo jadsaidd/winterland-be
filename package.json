@@ -28,6 +28,7 @@
     "seed:users": "ts-node --project prisma/tsconfig.json prisma/seeders/users.seed.ts",
     "seed:categories": "ts-node --project prisma/tsconfig.json prisma/seeders/categories.seed.ts",
     "seed:events": "ts-node --project prisma/tsconfig.json prisma/seeders/events.seed.ts",
+    "seed:locations": "ts-node --project prisma/tsconfig.json prisma/seeders/locations.seed.ts",
     "prepare": "husky"
   },
   "prisma": {

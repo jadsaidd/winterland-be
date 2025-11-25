@@ -43,6 +43,10 @@ All permissions from dashboard routes:
 - **Cash**: Traditional cash payment with icon
 - **Ziina**: Electronic payment method with icon
 
+### Locations
+
+- **Theater**: Theater seating layout with zones (VVIP, VIP, Regular, Economy) and sections (Center, Left, Right), including template configuration for seat arrangements
+
 ### Categories
 
 15 diverse categories with bilingual content (en/ar):
@@ -99,6 +103,9 @@ pnpm seed:payment-methods
 # Seed users only (requires roles and country codes to be seeded first)
 pnpm seed:users
 
+# Seed locations only
+pnpm seed:locations
+
 # Seed categories only
 pnpm seed:categories
 ```
@@ -113,9 +120,10 @@ The seeders have dependencies and should be run in this order:
 2. **Roles** (depends on permissions)
 3. **Country Codes** (no dependencies)
 4. **Payment Methods** (no dependencies)
-5. **Users** (depends on roles and country codes)
-6. **Categories** (no dependencies)
-7. **Events** (depends on categories and locations)
+5. **Locations** (no dependencies)
+6. **Users** (depends on roles and country codes)
+7. **Categories** (no dependencies)
+8. **Events** (depends on categories and locations)
 
 The main `seed.ts` file automatically runs them in the correct order.
 

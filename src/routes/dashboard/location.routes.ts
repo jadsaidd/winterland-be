@@ -63,6 +63,16 @@ router.get(
 );
 
 /**
+ * Get location template by location ID or slug
+ * GET /api/v1/dashboard/locations/:identifier/template
+ */
+router.get(
+    '/:identifier/template',
+    validate(locationIdentifierParamSchema.shape.params as import('zod').ZodTypeAny, 'params'),
+    dashboardLocationController.getLocationTemplate.bind(dashboardLocationController)
+);
+
+/**
  * Update location
  * PUT /api/v1/dashboard/locations/:identifier
  */

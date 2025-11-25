@@ -546,4 +546,21 @@ export class LocationRepository {
             where: { locationId },
         });
     }
+
+    /**
+     * Get location template by location ID
+     */
+    async getTemplateByLocationId(locationId: string): Promise<{
+        id: string;
+        name: string;
+        config: any;
+        active: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        locationId: string;
+    } | null> {
+        return await prisma.locationTemplate.findUnique({
+            where: { locationId },
+        });
+    }
 }

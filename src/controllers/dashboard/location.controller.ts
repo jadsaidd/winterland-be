@@ -154,6 +154,26 @@ export class DashboardLocationController {
             next(error);
         }
     }
+
+    /**
+     * Get location template by location ID or slug
+     * GET /api/v1/dashboard/locations/:identifier/template
+     */
+    async getLocationTemplate(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { identifier } = req.params;
+
+            const template = await locationService.getLocationTemplate(identifier);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Location template retrieved successfully',
+                data: template,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 export const dashboardLocationController = new DashboardLocationController();

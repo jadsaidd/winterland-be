@@ -129,7 +129,8 @@ export class EventService {
             description: { en: string; ar?: string };
             startAt: string;
             endAt: string;
-            originalPrice: number;
+            haveSeats?: boolean;
+            originalPrice?: number;
             discountedPrice?: number;
             categoryIds: string[];
             locationIds: string[];
@@ -160,6 +161,7 @@ export class EventService {
             description: data.description,
             startAt,
             endAt,
+            haveSeats: data.haveSeats ?? false,
             originalPrice: data.originalPrice,
             discountedPrice: data.discountedPrice,
         });
@@ -223,8 +225,9 @@ export class EventService {
             description?: { en: string; ar?: string };
             startAt?: string;
             endAt?: string;
-            originalPrice?: number;
-            discountedPrice?: number;
+            haveSeats?: boolean;
+            originalPrice?: number | null;
+            discountedPrice?: number | null;
             categoryIds?: string[];
             locationIds?: string[];
             mediaUrls?: string[];
@@ -261,7 +264,12 @@ export class EventService {
             updateData.endAt = new Date(data.endAt);
         }
 
-        // Update pricing
+        // Update haveSeats
+        if (data.haveSeats !== undefined) {
+            updateData.haveSeats = data.haveSeats;
+        }
+
+        // Update pricing (allow null to clear prices when haveSeats is true)
         if (data.originalPrice !== undefined) {
             updateData.originalPrice = data.originalPrice;
         }

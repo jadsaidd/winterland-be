@@ -11,7 +11,8 @@ export class EventRepository {
         description: any;
         startAt: Date;
         endAt: Date;
-        originalPrice: number;
+        haveSeats?: boolean;
+        originalPrice?: number;
         discountedPrice?: number;
     }) {
         return await prisma.event.create({
@@ -275,8 +276,9 @@ export class EventRepository {
             description?: any;
             startAt?: Date;
             endAt?: Date;
-            originalPrice?: number;
-            discountedPrice?: number;
+            haveSeats?: boolean;
+            originalPrice?: number | null;
+            discountedPrice?: number | null;
         }
     ) {
         return await prisma.event.update({

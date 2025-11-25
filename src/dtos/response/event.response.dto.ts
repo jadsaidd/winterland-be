@@ -4,10 +4,11 @@ export interface EventResponseDto {
     eventSlug: string;
     description: any; // JSON i18n object or localized string
     active: boolean;
+    haveSeats: boolean; // If true, prices may be null
     startAt: string;
     endAt: string;
-    originalPrice: number;
-    discountedPrice?: number;
+    originalPrice?: number | null; // Optional when haveSeats is true
+    discountedPrice?: number | null;
     createdAt: string;
     updatedAt: string;
     categories?: CategorySummaryDto[];

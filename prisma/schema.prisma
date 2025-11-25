@@ -270,8 +270,10 @@ model Event {
   description Json
   active      Boolean @default(true)
 
-  originalPrice   Float
+  originalPrice   Float? // Optional when haveSeats is true
   discountedPrice Float?
+
+  haveSeats Boolean @default(false)
 
   startAt DateTime
   endAt   DateTime

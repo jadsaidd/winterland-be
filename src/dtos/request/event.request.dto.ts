@@ -13,7 +13,7 @@ export interface CreateEventRequestDto {
     originalPrice?: number; // Required if haveSeats is false
     discountedPrice?: number;
     categoryIds: string[];
-    locationIds: string[];
+    locationId: string;
     mediaUrls?: string[];
 }
 
@@ -32,7 +32,7 @@ export interface UpdateEventRequestDto {
     originalPrice?: number | null; // Can be null to clear when haveSeats is true
     discountedPrice?: number | null; // Can be null to clear when haveSeats is true
     categoryIds?: string[];
-    locationIds?: string[];
+    locationId?: string;
     mediaUrls?: string[];
 }
 
@@ -42,10 +42,6 @@ export interface ToggleEventActiveRequestDto {
 
 export interface ManageEventCategoriesRequestDto {
     categoryIds: string[];
-}
-
-export interface ManageEventLocationsRequestDto {
-    locationIds: string[];
 }
 
 export interface GetAllEventsQueryDto {

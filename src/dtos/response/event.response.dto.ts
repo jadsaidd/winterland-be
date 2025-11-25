@@ -12,7 +12,7 @@ export interface EventResponseDto {
     createdAt: string;
     updatedAt: string;
     categories?: CategorySummaryDto[];
-    locations?: LocationSummaryDto[];
+    location?: LocationSummaryDto;
     media?: MediaDto[];
 }
 

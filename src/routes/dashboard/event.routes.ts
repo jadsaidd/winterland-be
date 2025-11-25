@@ -10,7 +10,6 @@ import {
     eventIdParamSchema,
     getAllEventsQuerySchema,
     manageEventCategoriesSchema,
-    manageEventLocationsSchema,
     toggleEventActiveSchema,
     updateEventSchema,
 } from '../../schemas/event.schema';
@@ -136,34 +135,6 @@ router.delete(
     validate(eventIdParamSchema, 'params'),
     validate(manageEventCategoriesSchema),
     dashboardEventController.removeCategories
-);
-
-/**
- * @route   POST /api/v1/dashboard/events/:id/locations
- * @desc    Add locations to event
- * @access  Private (requires events:update permission)
- */
-router.post(
-    '/:id/locations',
-    authMiddleware,
-    permissionMiddleware(['events:update']),
-    validate(eventIdParamSchema, 'params'),
-    validate(manageEventLocationsSchema),
-    dashboardEventController.addLocations
-);
-
-/**
- * @route   DELETE /api/v1/dashboard/events/:id/locations
- * @desc    Remove locations from event
- * @access  Private (requires events:update permission)
- */
-router.delete(
-    '/:id/locations',
-    authMiddleware,
-    permissionMiddleware(['events:update']),
-    validate(eventIdParamSchema, 'params'),
-    validate(manageEventLocationsSchema),
-    dashboardEventController.removeLocations
 );
 
 export default router;

@@ -23,7 +23,7 @@ export const createEventSchema = z.object({
     originalPrice: z.number().positive({ message: 'Original price must be a positive number' }).optional(),
     discountedPrice: z.number().positive({ message: 'Discounted price must be a positive number' }).optional(),
     categoryIds: z.array(z.string().cuid()).min(1, 'At least one category is required'),
-    locationIds: z.array(z.string().cuid()).min(1, 'At least one location is required'),
+    locationId: z.string().cuid('Invalid location ID'),
     mediaUrls: z.array(z.string().url()).optional(),
 }).refine(
     (data) => {
@@ -72,7 +72,7 @@ export const updateEventSchema = z.object({
     originalPrice: z.number().positive({ message: 'Original price must be a positive number' }).nullable().optional(),
     discountedPrice: z.number().positive({ message: 'Discounted price must be a positive number' }).nullable().optional(),
     categoryIds: z.array(z.string().cuid()).min(1).optional(),
-    locationIds: z.array(z.string().cuid()).min(1).optional(),
+    locationId: z.string().cuid('Invalid location ID').optional(),
     mediaUrls: z.array(z.string().url()).optional(),
 }).refine(
     (data) => {
@@ -113,12 +113,6 @@ export const toggleEventActiveSchema = z.object({
 
 export const manageEventCategoriesSchema = z.object({
     categoryIds: z.array(z.string().cuid()).min(1, 'At least one category ID is required'),
-});
-
-// ==================== MANAGE LOCATIONS ====================
-
-export const manageEventLocationsSchema = z.object({
-    locationIds: z.array(z.string().cuid()).min(1, 'At least one location ID is required'),
 });
 
 // ==================== PARAM SCHEMAS ====================

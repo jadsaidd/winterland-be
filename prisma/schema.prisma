@@ -286,8 +286,10 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+
   schedules       Schedule[]
-  eventLocations  EventLocation[]
   eventCategories EventCategory[]
   eventMedias     EventMedia[]
   cartItems       CartItem[]
@@ -352,7 +354,7 @@ model Location {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  eventLocations    EventLocation[]
+  events            Event[]
   locationMedias    LocationMedia[]
   locationTemplates LocationTemplate[]
   locationZones     LocationZone[]
@@ -464,22 +466,6 @@ model LocationSeat {
 
   @@unique([rowId, seatNumber])
   @@map("location_seats")
-}
-
-model EventLocation {
-  id String @id @default(cuid())
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  eventId    String
-  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  @@unique([eventId, locationId])
-  @@index([locationId])
-  @@map("event_locations")
 }
 
 model Schedule {

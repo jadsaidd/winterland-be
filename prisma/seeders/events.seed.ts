@@ -188,29 +188,24 @@ export const eventsData: EventData[] = [
 export async function seedEvents() {
     console.log('Seeding events...');
 
-    const locationId = 'cmi1hvia30006yqfn1s2kpgsx';
-    const categoryId = 'cmi0pyq3w005d11flo9r7w6bu';
-
     try {
-        // Verify location exists
-        const location = await prisma.location.findUnique({
-            where: { id: locationId },
-        });
-
-        if (!location) {
-            console.error(`Location with ID ${locationId} not found. Please create it first.`);
+        // Fetch existing locations
+        const locations = await prisma.location.findMany();
+        if (locations.length === 0) {
+            console.error('No locations found. Please seed locations first.');
             return;
         }
+        const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+        const locationId = randomLocation.id;
 
-        // Verify category exists
-        const category = await prisma.category.findUnique({
-            where: { id: categoryId },
-        });
-
-        if (!category) {
-            console.error(`Category with ID ${categoryId} not found. Please create it first.`);
+        // Fetch existing categories
+        const categories = await prisma.category.findMany();
+        if (categories.length === 0) {
+            console.error('No categories found. Please seed categories first.');
             return;
         }
+        const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+        const categoryId = randomCategory.id;
 
         const createdEvents = [];
 
@@ -251,6 +246,7 @@ export async function seedEvents() {
                     originalPrice: eventData.originalPrice,
                     discountedPrice: eventData.discountedPrice,
                     active: eventData.active,
+                    location: { connect: { id: locationId } },
                 },
                 create: {
                     name: eventData.name,
@@ -261,6 +257,7 @@ export async function seedEvents() {
                     originalPrice: eventData.originalPrice,
                     discountedPrice: eventData.discountedPrice,
                     active: eventData.active,
+                    location: { connect: { id: locationId } },
                 },
             });
 
@@ -276,21 +273,6 @@ export async function seedEvents() {
                 create: {
                     eventId: event.id,
                     categoryId: categoryId,
-                },
-            });
-
-            // Link event to location
-            await prisma.eventLocation.upsert({
-                where: {
-                    eventId_locationId: {
-                        eventId: event.id,
-                        locationId: locationId,
-                    },
-                },
-                update: {},
-                create: {
-                    eventId: event.id,
-                    locationId: locationId,
                 },
             });
 

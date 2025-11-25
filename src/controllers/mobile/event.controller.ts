@@ -60,12 +60,9 @@ export class MobileEventController {
                     }));
                 }
 
-                // Localize locations if present
-                if (localizedEvent.eventLocations && localizedEvent.eventLocations.length > 0) {
-                    localizedEvent.eventLocations = localizedEvent.eventLocations.map((el: any) => ({
-                        ...el,
-                        location: localizeObject(el.location, ['name', 'description'], language),
-                    }));
+                // Localize location if present
+                if (localizedEvent.location) {
+                    localizedEvent.location = localizeObject(localizedEvent.location, ['name', 'description'], language);
                 }
 
                 return localizedEvent;
@@ -105,12 +102,9 @@ export class MobileEventController {
                 }));
             }
 
-            // Localize locations if present
-            if (localizedEvent.eventLocations && localizedEvent.eventLocations.length > 0) {
-                localizedEvent.eventLocations = localizedEvent.eventLocations.map((el: any) => ({
-                    ...el,
-                    location: localizeObject(el.location, ['name', 'description'], language),
-                }));
+            // Localize location if present
+            if (localizedEvent.location) {
+                localizedEvent.location = localizeObject(localizedEvent.location, ['name', 'description'], language);
             }
 
             res.status(200).json({

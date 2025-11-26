@@ -10,7 +10,7 @@ import {
 import bookingRepository from '../repositories/booking.repository';
 import eventRepository from '../repositories/event.repository';
 import { PaymentMethodRepository } from '../repositories/payment-method.repository';
-import { TransactionRepository } from '../repositories/transaction.repository';
+import { MAX_PENDING_TRANSACTIONS, TransactionRepository } from '../repositories/transaction.repository';
 import { WalletRepository } from '../repositories/wallet.repository';
 import { CheckoutInput } from '../schemas/booking.schema';
 import { prisma } from '../utils/prisma.client';
@@ -20,6 +20,19 @@ const walletRepository = new WalletRepository();
 const transactionRepository = new TransactionRepository();
 
 export class BookingService {
+    /**
+     * Validate that user can create a pending transaction
+     * @throws BadRequestException if user has reached the limit
+     */
+    private async validatePendingTransactionLimit(userId: string) {
+        const canCreate = await transactionRepository.canCreatePendingTransaction(userId);
+        if (!canCreate) {
+            throw new BadRequestException(
+                `You have reached the maximum limit of ${MAX_PENDING_TRANSACTIONS} pending transactions. Please complete or cancel existing pending transactions before creating new ones.`
+            );
+        }
+    }
+
     /**
      * Validate payment method exists and is active
      */
@@ -208,6 +221,11 @@ export class BookingService {
             let transaction;
             const paymentChannelLower = paymentChannel.toLowerCase();
 
+            // Check pending transaction limit for non-wallet payments (they create PENDING transactions)
+            if (paymentChannelLower !== 'wallet') {
+                await this.validatePendingTransactionLimit(userId);
+            }
+
             if (paymentChannelLower === 'wallet') {
                 // Wallet payment: validate balance, deduct, create completed transaction
                 const result = await this.processWalletPayment(
@@ -335,6 +353,11 @@ export class BookingService {
                 // 6. Process payment based on method type
                 let transaction;
                 const paymentChannelLower = paymentChannel.toLowerCase();
+
+                // Check pending transaction limit for non-wallet payments (they create PENDING transactions)
+                if (paymentChannelLower !== 'wallet') {
+                    await this.validatePendingTransactionLimit(userId);
+                }
 
                 if (paymentChannelLower === 'wallet') {
                     // Wallet payment: validate balance, deduct, create completed transaction

@@ -2,7 +2,7 @@ import { logger } from "../config";
 import { WalletTopUpResponse } from '../dtos/response/wallet.response.dto';
 import { BadRequestException, ForbiddenException, HttpException, NotFoundException } from "../exceptions/http.exception";
 import { PaymentMethodRepository } from '../repositories/payment-method.repository';
-import { TransactionRepository } from '../repositories/transaction.repository';
+import { MAX_PENDING_TRANSACTIONS, TransactionRepository } from '../repositories/transaction.repository';
 import { WalletRepository } from '../repositories/wallet.repository';
 import { WalletTopUpInput } from '../schemas/transaction.schema';
 import { PaginatedResponse } from '../utils/pagination.util';
@@ -160,6 +160,16 @@ export class WalletService {
                 : String(paymentMethod.name);
 
             const isCashPayment = paymentChannel.toLowerCase() === 'cash';
+
+            // Check pending transaction limit for cash payments (creates PENDING transaction)
+            if (isCashPayment) {
+                const canCreate = await transactionRepository.canCreatePendingTransaction(userId);
+                if (!canCreate) {
+                    throw new BadRequestException(
+                        `You have reached the maximum limit of ${MAX_PENDING_TRANSACTIONS} pending transactions. Please complete or cancel existing pending transactions before creating new ones.`
+                    );
+                }
+            }
 
             logger.info(`Processing top-up: User ${userId}, Amount ${amount}, Payment Method: ${paymentChannel}, Is Cash: ${isCashPayment}`);
 

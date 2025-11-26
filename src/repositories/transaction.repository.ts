@@ -3,7 +3,32 @@ import { Transaction } from '@prisma/client';
 import { createPaginatedResponse, PaginatedResponse } from '../utils/pagination.util';
 import { prisma } from '../utils/prisma.client';
 
+export const MAX_PENDING_TRANSACTIONS = 3;
+
 export class TransactionRepository {
+    /**
+     * Count pending transactions for a user
+     * @param userId User ID
+     * @returns Number of pending transactions
+     */
+    async countPendingTransactions(userId: string): Promise<number> {
+        return await prisma.transaction.count({
+            where: {
+                userId,
+                status: 'PENDING',
+            },
+        });
+    }
+
+    /**
+     * Check if user has reached the maximum pending transactions limit
+     * @param userId User ID
+     * @returns true if user can create more pending transactions, false otherwise
+     */
+    async canCreatePendingTransaction(userId: string): Promise<boolean> {
+        const count = await this.countPendingTransactions(userId);
+        return count < MAX_PENDING_TRANSACTIONS;
+    }
     /**
      * Find transaction by ID with all related data
      * @param id Transaction ID

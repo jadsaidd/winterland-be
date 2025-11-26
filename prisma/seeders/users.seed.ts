@@ -79,6 +79,7 @@ export async function seedUsers() {
                     isEmailVerified: userData.isEmailVerified,
                     isPhoneVerified: userData.isPhoneVerified,
                     status: userData.status,
+                    isTestUser: userData.isTestUser || true,
                 },
                 create: {
                     email: userData.email,
@@ -90,6 +91,7 @@ export async function seedUsers() {
                     isEmailVerified: userData.isEmailVerified,
                     isPhoneVerified: userData.isPhoneVerified,
                     status: userData.status,
+                    isTestUser: userData.isTestUser || true,
                 },
             });
 

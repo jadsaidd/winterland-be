@@ -129,6 +129,54 @@ export class TransactionService {
     }
 
     /**
+     * Cancel a transaction (only PENDING transactions can be cancelled)
+     * @param transactionId Transaction ID
+     * @param userId User ID (authenticated user who is cancelling the transaction)
+     * @returns Cancelled transaction with bookings
+     */
+    async cancelTransaction(transactionId: string) {
+        try {
+            if (!transactionId) {
+                throw new BadRequestException('Transaction ID is required');
+            }
+
+            const transaction = await transactionRepository.findById(transactionId);
+
+            if (!transaction) {
+                throw new NotFoundException('Transaction not found');
+            }
+
+            // Validate that transaction is pending
+            if (transaction.status !== 'PENDING') {
+                throw new BadRequestException(
+                    `Cannot cancel transaction with status: ${transaction.status}. Only PENDING transactions can be cancelled.`
+                );
+            }
+
+            // Cancel transaction and its related bookings
+            const cancelledTransaction = await transactionRepository.cancelTransactionWithBookings(
+                transactionId,
+            );
+
+            logger.info(`Transaction ${transactionId} cancelled.`);
+
+            return {
+                success: true,
+                message: 'Transaction cancelled successfully',
+                data: {
+                    transaction: cancelledTransaction,
+                },
+            };
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            logger.error('Cancel transaction error:', error);
+            throw new BadRequestException('Failed to cancel transaction');
+        }
+    }
+
+    /**
      * Get all transactions for a user with pagination and status filter
      * @param userId User ID
      * @param page Page number

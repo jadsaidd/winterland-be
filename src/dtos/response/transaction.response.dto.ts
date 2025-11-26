@@ -30,3 +30,20 @@ export interface CompleteTransactionResponse {
         wallet?: WalletDataResponse;
     };
 }
+
+export interface CancelledBookingResponse {
+    id: string;
+    bookingNumber: string;
+    status: string;
+    isActive: boolean;
+}
+
+export interface CancelTransactionResponse {
+    success: boolean;
+    message: string;
+    data: {
+        transaction: TransactionResponse & {
+            bookings?: CancelledBookingResponse[];
+        };
+    };
+}

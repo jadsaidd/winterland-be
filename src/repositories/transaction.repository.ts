@@ -1,4 +1,4 @@
-import { Transaction } from '@prisma/client';
+import { Prisma, Transaction } from '@prisma/client';
 
 import { createPaginatedResponse, PaginatedResponse } from '../utils/pagination.util';
 import { prisma } from '../utils/prisma.client';
@@ -277,6 +277,64 @@ export class TransactionRepository {
                 completedBy: data.completedBy,
                 completedAt: data.status === 'COMPLETED' ? new Date() : null,
             },
+        });
+    }
+
+    /**
+     * Cancel a transaction and update its status to CANCELLED
+     * @param id Transaction ID
+     * @param cancelledBy User ID who cancelled the transaction
+     * @returns Updated transaction
+     */
+    async cancelTransaction(id: string, cancelledBy: string): Promise<Transaction> {
+        return await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: 'CANCELLED',
+                completedBy: cancelledBy,
+                completedAt: new Date(),
+            },
+        });
+    }
+
+    /**
+     * Cancel transaction and its related bookings in a single transaction
+     * @param transactionId Transaction ID
+     * @param cancelledBy User ID who cancelled
+     * @returns Updated transaction with bookings
+     */
+    async cancelTransactionWithBookings(
+        transactionId: string,
+    ): Promise<Transaction> {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            // Cancel all related bookings
+            await tx.booking.updateMany({
+                where: { transactionId },
+                data: {
+                    status: 'CANCELLED',
+                    isActive: false,
+                    cancelledAt: new Date(),
+                    cancelReason: 'Transaction cancelled',
+                },
+            });
+
+            // Cancel the transaction
+            return await tx.transaction.update({
+                where: { id: transactionId },
+                data: {
+                    status: 'CANCELLED',
+                },
+                include: {
+                    bookings: {
+                        select: {
+                            id: true,
+                            bookingNumber: true,
+                            status: true,
+                            isActive: true,
+                        },
+                    },
+                },
+            });
         });
     }
 

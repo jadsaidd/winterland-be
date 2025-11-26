@@ -743,6 +743,7 @@ export class UserService {
       osVersion?: string;
       appPlatform?: string;
       fcmToken?: string;
+      notificationsEnabled?: boolean;
       timezoneName?: string;
       timezoneOffset?: number;
       appVersion?: string;

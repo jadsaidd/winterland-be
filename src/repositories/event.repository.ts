@@ -11,8 +11,10 @@ export class EventRepository {
         description: any;
         startAt: Date;
         endAt: Date;
-        originalPrice: number;
+        haveSeats?: boolean;
+        originalPrice?: number;
         discountedPrice?: number;
+        locationId: string;
     }) {
         return await prisma.event.create({
             data,
@@ -39,15 +41,11 @@ export class EventRepository {
                         },
                     },
                 },
-                eventLocations: {
+                location: {
                     include: {
-                        location: {
+                        locationMedias: {
                             include: {
-                                locationMedias: {
-                                    include: {
-                                        media: true,
-                                    },
-                                },
+                                media: true,
                             },
                         },
                     },
@@ -84,15 +82,11 @@ export class EventRepository {
                         },
                     },
                 },
-                eventLocations: {
+                location: {
                     include: {
-                        location: {
+                        locationMedias: {
                             include: {
-                                locationMedias: {
-                                    include: {
-                                        media: true,
-                                    },
-                                },
+                                media: true,
                             },
                         },
                     },
@@ -201,11 +195,7 @@ export class EventRepository {
         }
 
         if (filters?.locationId) {
-            where.eventLocations = {
-                some: {
-                    locationId: filters.locationId,
-                },
-            };
+            where.locationId = filters.locationId;
         }
 
         // Date range filters
@@ -243,11 +233,7 @@ export class EventRepository {
                             category: true,
                         },
                     },
-                    eventLocations: {
-                        include: {
-                            location: true,
-                        },
-                    },
+                    location: true,
                     eventMedias: {
                         include: {
                             media: true,
@@ -275,8 +261,10 @@ export class EventRepository {
             description?: any;
             startAt?: Date;
             endAt?: Date;
-            originalPrice?: number;
-            discountedPrice?: number;
+            haveSeats?: boolean;
+            originalPrice?: number | null;
+            discountedPrice?: number | null;
+            locationId?: string;
         }
     ) {
         return await prisma.event.update({
@@ -417,82 +405,6 @@ export class EventRepository {
                 category: {
                     include: {
                         categoryMedias: {
-                            include: {
-                                media: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-    }
-
-    // ==================== EVENT LOCATION RELATIONS ====================
-
-    /**
-     * Add locations to event
-     */
-    async addLocations(eventId: string, locationIds: string[]) {
-        const data = locationIds.map((locationId) => ({
-            eventId,
-            locationId,
-        }));
-
-        return await prisma.eventLocation.createMany({
-            data,
-            skipDuplicates: true,
-        });
-    }
-
-    /**
-     * Remove locations from event
-     */
-    async removeLocations(eventId: string, locationIds: string[]) {
-        return await prisma.eventLocation.deleteMany({
-            where: {
-                eventId,
-                locationId: {
-                    in: locationIds,
-                },
-            },
-        });
-    }
-
-    /**
-     * Replace all locations for an event
-     */
-    async replaceLocations(eventId: string, locationIds: string[]) {
-        await prisma.$transaction(async (tx: any) => {
-            // Remove all existing locations
-            await tx.eventLocation.deleteMany({
-                where: { eventId },
-            });
-
-            // Add new locations
-            if (locationIds.length > 0) {
-                const data = locationIds.map((locationId) => ({
-                    eventId,
-                    locationId,
-                }));
-
-                await tx.eventLocation.createMany({
-                    data,
-                    skipDuplicates: true,
-                });
-            }
-        });
-    }
-
-    /**
-     * Get event locations
-     */
-    async getEventLocations(eventId: string) {
-        return await prisma.eventLocation.findMany({
-            where: { eventId },
-            include: {
-                location: {
-                    include: {
-                        locationMedias: {
                             include: {
                                 media: true,
                             },

@@ -119,6 +119,7 @@ export const updateUserApplicationDataSchema = z.object({
   osVersion: z.string().optional(),
   appPlatform: z.string().optional(),
   fcmToken: z.string().optional(),
+  notificationsEnabled: z.boolean().optional(),
   timezoneName: z.string().optional(),
   timezoneOffset: z.number().int().optional(),
   appVersion: z.string().optional(),

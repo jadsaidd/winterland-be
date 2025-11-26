@@ -26,6 +26,16 @@ export interface CategoryWithRelations {
             meta: any;
         };
     }>;
+    eventCategories?: Array<{
+        id: string;
+        eventId: string;
+        event: {
+            id: string;
+            name: any;
+            eventSlug: string;
+            active: boolean;
+        };
+    }>;
 }
 
 /**
@@ -53,6 +63,18 @@ export class CategoryRepository {
                         sortOrder: 'asc',
                     },
                 },
+                eventCategories: {
+                    include: {
+                        event: {
+                            select: {
+                                id: true,
+                                name: true,
+                                eventSlug: true,
+                                active: true,
+                            },
+                        },
+                    },
+                },
             },
         }) as CategoryWithRelations;
     }
@@ -72,6 +94,18 @@ export class CategoryRepository {
                         sortOrder: 'asc',
                     },
                 },
+                eventCategories: {
+                    include: {
+                        event: {
+                            select: {
+                                id: true,
+                                name: true,
+                                eventSlug: true,
+                                active: true,
+                            },
+                        },
+                    },
+                },
             },
         }) as CategoryWithRelations | null;
     }
@@ -89,6 +123,18 @@ export class CategoryRepository {
                     },
                     orderBy: {
                         sortOrder: 'asc',
+                    },
+                },
+                eventCategories: {
+                    include: {
+                        event: {
+                            select: {
+                                id: true,
+                                name: true,
+                                eventSlug: true,
+                                active: true,
+                            },
+                        },
                     },
                 },
             },
@@ -190,6 +236,18 @@ export class CategoryRepository {
                             sortOrder: 'asc',
                         },
                     },
+                    eventCategories: {
+                        include: {
+                            event: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    eventSlug: true,
+                                    active: true,
+                                },
+                            },
+                        },
+                    },
                 },
                 orderBy: {
                     createdAt: 'desc',
@@ -228,6 +286,18 @@ export class CategoryRepository {
                     },
                     orderBy: {
                         sortOrder: 'asc',
+                    },
+                },
+                eventCategories: {
+                    include: {
+                        event: {
+                            select: {
+                                id: true,
+                                name: true,
+                                eventSlug: true,
+                                active: true,
+                            },
+                        },
                     },
                 },
             },

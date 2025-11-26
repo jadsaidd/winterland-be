@@ -19,10 +19,11 @@ export const createEventSchema = z.object({
     description: i18nTextSchema,
     startAt: z.string().datetime({ message: 'Invalid datetime format for startAt' }),
     endAt: z.string().datetime({ message: 'Invalid datetime format for endAt' }),
-    originalPrice: z.number().positive({ message: 'Original price must be a positive number' }),
+    haveSeats: z.boolean().optional().default(false),
+    originalPrice: z.number().positive({ message: 'Original price must be a positive number' }).optional(),
     discountedPrice: z.number().positive({ message: 'Discounted price must be a positive number' }).optional(),
     categoryIds: z.array(z.string().cuid()).min(1, 'At least one category is required'),
-    locationIds: z.array(z.string().cuid()).min(1, 'At least one location is required'),
+    locationId: z.string().cuid('Invalid location ID'),
     mediaUrls: z.array(z.string().url()).optional(),
 }).refine(
     (data) => {
@@ -36,8 +37,20 @@ export const createEventSchema = z.object({
     }
 ).refine(
     (data) => {
-        // If discountedPrice is provided, it must be less than originalPrice
-        if (data.discountedPrice !== undefined) {
+        // If haveSeats is false, originalPrice is required
+        if (!data.haveSeats && data.originalPrice === undefined) {
+            return false;
+        }
+        return true;
+    },
+    {
+        message: 'originalPrice is required when haveSeats is false',
+        path: ['originalPrice'],
+    }
+).refine(
+    (data) => {
+        // If discountedPrice is provided and originalPrice is provided, discountedPrice must be less than originalPrice
+        if (data.discountedPrice !== undefined && data.originalPrice !== undefined) {
             return data.discountedPrice < data.originalPrice;
         }
         return true;
@@ -55,10 +68,11 @@ export const updateEventSchema = z.object({
     description: i18nTextSchema.optional(),
     startAt: z.string().datetime({ message: 'Invalid datetime format for startAt' }).optional(),
     endAt: z.string().datetime({ message: 'Invalid datetime format for endAt' }).optional(),
-    originalPrice: z.number().positive({ message: 'Original price must be a positive number' }).optional(),
-    discountedPrice: z.number().positive({ message: 'Discounted price must be a positive number' }).optional(),
+    haveSeats: z.boolean().optional(),
+    originalPrice: z.number().positive({ message: 'Original price must be a positive number' }).nullable().optional(),
+    discountedPrice: z.number().positive({ message: 'Discounted price must be a positive number' }).nullable().optional(),
     categoryIds: z.array(z.string().cuid()).min(1).optional(),
-    locationIds: z.array(z.string().cuid()).min(1).optional(),
+    locationId: z.string().cuid('Invalid location ID').optional(),
     mediaUrls: z.array(z.string().url()).optional(),
 }).refine(
     (data) => {
@@ -76,8 +90,9 @@ export const updateEventSchema = z.object({
     }
 ).refine(
     (data) => {
-        // If both prices are provided, discountedPrice must be less than originalPrice
-        if (data.discountedPrice !== undefined && data.originalPrice !== undefined) {
+        // If both prices are provided and not null, discountedPrice must be less than originalPrice
+        if (data.discountedPrice !== undefined && data.discountedPrice !== null &&
+            data.originalPrice !== undefined && data.originalPrice !== null) {
             return data.discountedPrice < data.originalPrice;
         }
         return true;
@@ -98,12 +113,6 @@ export const toggleEventActiveSchema = z.object({
 
 export const manageEventCategoriesSchema = z.object({
     categoryIds: z.array(z.string().cuid()).min(1, 'At least one category ID is required'),
-});
-
-// ==================== MANAGE LOCATIONS ====================
-
-export const manageEventLocationsSchema = z.object({
-    locationIds: z.array(z.string().cuid()).min(1, 'At least one location ID is required'),
 });
 
 // ==================== PARAM SCHEMAS ====================

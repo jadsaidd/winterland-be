@@ -46,4 +46,16 @@ router.patch(
     transactionController.markAsCompleted
 );
 
+/**
+ * @route   PATCH /mobile/transactions/:id/cancel
+ * @desc    Cancel a pending transaction
+ * @access  Private
+ */
+router.patch(
+    '/:id/cancel',
+    authMiddleware,
+    validate(transactionIdParamSchema, 'params'),
+    transactionController.cancelTransaction
+);
+
 export default router;

@@ -129,10 +129,11 @@ export class EventService {
             description: { en: string; ar?: string };
             startAt: string;
             endAt: string;
-            originalPrice: number;
+            haveSeats?: boolean;
+            originalPrice?: number;
             discountedPrice?: number;
             categoryIds: string[];
-            locationIds: string[];
+            locationId: string;
             mediaUrls?: string[];
         },
         _userId?: string
@@ -147,8 +148,8 @@ export class EventService {
         // Validate categories
         await this.validateCategories(data.categoryIds);
 
-        // Validate locations
-        await this.validateLocations(data.locationIds);
+        // Validate location
+        await this.validateLocations([data.locationId]);
 
         // Generate unique slug
         const eventSlug = await this.generateUniqueSlug(data.name.en);
@@ -160,17 +161,15 @@ export class EventService {
             description: data.description,
             startAt,
             endAt,
+            haveSeats: data.haveSeats ?? false,
             originalPrice: data.originalPrice,
             discountedPrice: data.discountedPrice,
+            locationId: data.locationId,
         });
 
         // Add categories
         const uniqueCategoryIds = [...new Set(data.categoryIds)];
         await eventRepository.addCategories(event.id, uniqueCategoryIds);
-
-        // Add locations
-        const uniqueLocationIds = [...new Set(data.locationIds)];
-        await eventRepository.addLocations(event.id, uniqueLocationIds);
 
         // Process media if provided
         if (data.mediaUrls && data.mediaUrls.length > 0) {
@@ -223,10 +222,11 @@ export class EventService {
             description?: { en: string; ar?: string };
             startAt?: string;
             endAt?: string;
-            originalPrice?: number;
-            discountedPrice?: number;
+            haveSeats?: boolean;
+            originalPrice?: number | null;
+            discountedPrice?: number | null;
             categoryIds?: string[];
-            locationIds?: string[];
+            locationId?: string;
             mediaUrls?: string[];
         }
     ): Promise<any> {
@@ -261,7 +261,12 @@ export class EventService {
             updateData.endAt = new Date(data.endAt);
         }
 
-        // Update pricing
+        // Update haveSeats
+        if (data.haveSeats !== undefined) {
+            updateData.haveSeats = data.haveSeats;
+        }
+
+        // Update pricing (allow null to clear prices when haveSeats is true)
         if (data.originalPrice !== undefined) {
             updateData.originalPrice = data.originalPrice;
         }
@@ -286,11 +291,10 @@ export class EventService {
             await eventRepository.replaceCategories(id, uniqueCategoryIds);
         }
 
-        // Update locations if provided
-        if (data.locationIds) {
-            await this.validateLocations(data.locationIds);
-            const uniqueLocationIds = [...new Set(data.locationIds)];
-            await eventRepository.replaceLocations(id, uniqueLocationIds);
+        // Update location if provided
+        if (data.locationId) {
+            await this.validateLocations([data.locationId]);
+            updateData.locationId = data.locationId;
         }
 
         // Update media if provided
@@ -390,56 +394,6 @@ export class EventService {
 
         // Remove categories (repository can ignore non-attached IDs)
         await eventRepository.removeCategories(eventId, uniqueCategoryIds);
-    }
-
-    /**
-     * Add locations to event
-     */
-    async addLocationsToEvent(eventId: string, locationIds: string[]): Promise<any> {
-        // Check if event exists
-        const event = await eventRepository.findById(eventId);
-        if (!event) {
-            throw new NotFoundException('Event not found');
-        }
-
-        // Validate locations
-        await this.validateLocations(locationIds);
-
-        // Remove duplicates
-        const uniqueLocationIds = [...new Set(locationIds)];
-
-        // Add locations
-        await eventRepository.addLocations(eventId, uniqueLocationIds);
-
-        // Return updated locations
-        return await eventRepository.getEventLocations(eventId);
-    }
-
-    /**
-     * Remove locations from event
-     */
-    async removeLocationsFromEvent(eventId: string, locationIds: string[]): Promise<void> {
-        // Check if event exists
-        const event = await eventRepository.findById(eventId);
-        if (!event) {
-            throw new NotFoundException('Event not found');
-        }
-
-        // Remove duplicates
-        const uniqueLocationIds = [...new Set(locationIds)];
-
-        // Get current locations
-        const currentLocations = await eventRepository.getEventLocations(eventId);
-        const currentIds = new Set(currentLocations.map((loc: any) => loc.id));
-        // Count how many of the requested IDs are actually attached
-        const toRemoveCount = uniqueLocationIds.filter(id => currentIds.has(id)).length;
-        const remainingCount = currentIds.size - toRemoveCount;
-        if (remainingCount < 1) {
-            throw new BadRequestException('Event must have at least one location');
-        }
-
-        // Remove locations (repository can ignore non-attached IDs)
-        await eventRepository.removeLocations(eventId, uniqueLocationIds);
     }
 }
 

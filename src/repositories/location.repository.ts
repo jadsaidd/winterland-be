@@ -30,15 +30,11 @@ export interface LocationWithRelations {
             meta: any;
         };
     }>;
-    eventLocations?: Array<{
+    events?: Array<{
         id: string;
-        eventId: string;
-        event: {
-            id: string;
-            name: any;
-            eventSlug: string;
-            active: boolean;
-        };
+        name: any;
+        eventSlug: string;
+        active: boolean;
     }>;
 }
 
@@ -71,16 +67,12 @@ export class LocationRepository {
                         sortOrder: 'asc',
                     },
                 },
-                eventLocations: {
-                    include: {
-                        event: {
-                            select: {
-                                id: true,
-                                name: true,
-                                eventSlug: true,
-                                active: true,
-                            },
-                        },
+                events: {
+                    select: {
+                        id: true,
+                        name: true,
+                        eventSlug: true,
+                        active: true,
                     },
                 },
             },
@@ -102,16 +94,12 @@ export class LocationRepository {
                         sortOrder: 'asc',
                     },
                 },
-                eventLocations: {
-                    include: {
-                        event: {
-                            select: {
-                                id: true,
-                                name: true,
-                                eventSlug: true,
-                                active: true,
-                            },
-                        },
+                events: {
+                    select: {
+                        id: true,
+                        name: true,
+                        eventSlug: true,
+                        active: true,
                     },
                 },
             },
@@ -133,16 +121,12 @@ export class LocationRepository {
                         sortOrder: 'asc',
                     },
                 },
-                eventLocations: {
-                    include: {
-                        event: {
-                            select: {
-                                id: true,
-                                name: true,
-                                eventSlug: true,
-                                active: true,
-                            },
-                        },
+                events: {
+                    select: {
+                        id: true,
+                        name: true,
+                        eventSlug: true,
+                        active: true,
                     },
                 },
             },
@@ -249,16 +233,12 @@ export class LocationRepository {
                             sortOrder: 'asc',
                         },
                     },
-                    eventLocations: {
-                        include: {
-                            event: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    eventSlug: true,
-                                    active: true,
-                                },
-                            },
+                    events: {
+                        select: {
+                            id: true,
+                            name: true,
+                            eventSlug: true,
+                            active: true,
                         },
                     },
                 },
@@ -299,16 +279,12 @@ export class LocationRepository {
                         sortOrder: 'asc',
                     },
                 },
-                eventLocations: {
-                    include: {
-                        event: {
-                            select: {
-                                id: true,
-                                name: true,
-                                eventSlug: true,
-                                active: true,
-                            },
-                        },
+                events: {
+                    select: {
+                        id: true,
+                        name: true,
+                        eventSlug: true,
+                        active: true,
                     },
                 },
             },
@@ -331,16 +307,12 @@ export class LocationRepository {
                         sortOrder: 'asc',
                     },
                 },
-                eventLocations: {
-                    include: {
-                        event: {
-                            select: {
-                                id: true,
-                                name: true,
-                                eventSlug: true,
-                                active: true,
-                            },
-                        },
+                events: {
+                    select: {
+                        id: true,
+                        name: true,
+                        eventSlug: true,
+                        active: true,
                     },
                 },
             },
@@ -399,7 +371,7 @@ export class LocationRepository {
             prisma.location.count({ where: { active: true } }),
             prisma.location.count({
                 where: {
-                    eventLocations: {
+                    events: {
                         some: {},
                     },
                 },
@@ -414,7 +386,7 @@ export class LocationRepository {
         ]);
 
         // Get total events count across all locations
-        const totalEventsCount = await prisma.eventLocation.count();
+        const totalEventsCount = await prisma.event.count();
 
         // Get counts by type
         const types = await prisma.location.groupBy({
@@ -437,12 +409,12 @@ export class LocationRepository {
                 type: true,
                 _count: {
                     select: {
-                        eventLocations: true,
+                        events: true,
                     },
                 },
             },
             orderBy: {
-                eventLocations: {
+                events: {
                     _count: 'desc',
                 },
             },
@@ -471,7 +443,7 @@ export class LocationRepository {
                 prisma.location.count({
                     where: {
                         active: true,
-                        eventLocations: {
+                        events: {
                             some: {},
                         },
                     },
@@ -479,7 +451,7 @@ export class LocationRepository {
                 prisma.location.count({
                     where: {
                         active: true,
-                        eventLocations: {
+                        events: {
                             none: {},
                         },
                     },
@@ -487,7 +459,7 @@ export class LocationRepository {
                 prisma.location.count({
                     where: {
                         active: false,
-                        eventLocations: {
+                        events: {
                             some: {},
                         },
                     },
@@ -495,7 +467,7 @@ export class LocationRepository {
                 prisma.location.count({
                     where: {
                         active: false,
-                        eventLocations: {
+                        events: {
                             none: {},
                         },
                     },
@@ -518,7 +490,7 @@ export class LocationRepository {
                 id: loc.id,
                 name: loc.name,
                 locationSlug: loc.locationSlug,
-                eventCount: loc._count.eventLocations,
+                eventCount: loc._count.events,
                 active: loc.active,
                 type: loc.type,
             })),
@@ -571,6 +543,23 @@ export class LocationRepository {
      */
     async removeAllMedia(locationId: string): Promise<void> {
         await prisma.locationMedia.deleteMany({
+            where: { locationId },
+        });
+    }
+
+    /**
+     * Get location template by location ID
+     */
+    async getTemplateByLocationId(locationId: string): Promise<{
+        id: string;
+        name: string;
+        config: any;
+        active: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        locationId: string;
+    } | null> {
+        return await prisma.locationTemplate.findUnique({
             where: { locationId },
         });
     }

@@ -127,6 +127,7 @@ All requests are validated using Zod schemas with a centralized validation middl
 
 ## Database Seeding
 
+
 Seeders are idempotent and safe to re-run:
 
 ```bash

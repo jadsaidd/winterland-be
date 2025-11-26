@@ -9,6 +9,7 @@ import countryCodeRoutes from './country-code.routes';
 import eventRoutes from './event.routes';
 import locationRoutes from './location.routes';
 import paymentMethodRoutes from './payment-method.routes';
+import sessionRoutes from './session.routes';
 import transactionRoutes from './transaction.routes';
 import userRoutes from './user.routes';
 import walletRoutes from './wallet.routes';
@@ -27,5 +28,6 @@ router.use('/cart', cartRoutes);
 router.use('/wallet', walletRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/bookings', bookingRoutes);
+router.use('/sessions', sessionRoutes);
 
 export default router;

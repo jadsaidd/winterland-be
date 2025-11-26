@@ -5,15 +5,11 @@ export interface LocationMediaResponseDto {
     sortOrder: number | null;
 }
 
-export interface EventLocationResponseDto {
+export interface EventResponseDto {
     id: string;
-    eventId: string;
-    event: {
-        id: string;
-        name: any;
-        eventSlug: string;
-        active: boolean;
-    };
+    name: any;
+    eventSlug: string;
+    active: boolean;
 }
 
 export interface LocationResponseDto {
@@ -29,7 +25,7 @@ export interface LocationResponseDto {
     createdAt: Date;
     updatedAt: Date;
     media?: LocationMediaResponseDto[];
-    eventLocations?: EventLocationResponseDto[];
+    events?: EventResponseDto[];
 }
 
 export interface LocationListResponseDto {

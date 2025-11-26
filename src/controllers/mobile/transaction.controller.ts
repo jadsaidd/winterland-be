@@ -39,6 +39,22 @@ export class MobileTransactionController {
     }
 
     /**
+     * Cancel a transaction (PENDING transactions only)
+     * @route PATCH /mobile/transactions/:id/cancel
+     */
+    async cancelTransaction(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { id } = req.params;
+
+            const result = await transactionService.cancelTransaction(id);
+
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
      * Get all transactions for authenticated user
      * @route GET /mobile/transactions
      */

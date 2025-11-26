@@ -205,45 +205,6 @@ export class DashboardEventController {
             next(error);
         }
     }
-
-    /**
-     * Add locations to event
-     * POST /api/v1/dashboard/events/:id/locations
-     */
-    async addLocations(req: Request, res: Response, next: NextFunction): Promise<void> {
-        try {
-            const { id } = req.params;
-            const { locationIds } = req.body;
-            const locations = await eventService.addLocationsToEvent(id, locationIds);
-
-            res.status(200).json({
-                success: true,
-                message: 'Locations added to event successfully',
-                data: locations,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    /**
-     * Remove locations from event
-     * DELETE /api/v1/dashboard/events/:id/locations
-     */
-    async removeLocations(req: Request, res: Response, next: NextFunction): Promise<void> {
-        try {
-            const { id } = req.params;
-            const { locationIds } = req.body;
-            await eventService.removeLocationsFromEvent(id, locationIds);
-
-            res.status(200).json({
-                success: true,
-                message: 'Locations removed from event successfully',
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
 }
 
 export default new DashboardEventController();

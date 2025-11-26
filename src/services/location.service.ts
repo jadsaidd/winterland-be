@@ -290,6 +290,30 @@ export class LocationService {
     }> {
         return await this.locationRepository.getLocationsStatistics();
     }
+
+    /**
+     * Get location template by location ID or slug
+     */
+    async getLocationTemplate(identifier: string): Promise<{
+        id: string;
+        name: string;
+        config: any;
+        active: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        locationId: string;
+    }> {
+        // First, get the location to ensure it exists and get the ID
+        const location = await this.getLocationByIdOrSlug(identifier);
+
+        const template = await this.locationRepository.getTemplateByLocationId(location.id);
+
+        if (!template) {
+            throw new NotFoundException('Location template not found');
+        }
+
+        return template;
+    }
 }
 
 export const locationService = new LocationService();

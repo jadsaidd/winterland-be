@@ -382,7 +382,7 @@ model LocationTemplate {
   @@map("location_templates")
 }
 
-model LocationZone {
+model Zone {
   id String @id @default(cuid())
 
   type     ZoneType
@@ -391,12 +391,28 @@ model LocationZone {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  locationZones LocationZone[]
+  zonePricings  ZonePricing[]
+
+  @@map("zones")
+}
+
+model LocationZone {
+  id String @id @default(cuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   locationId String
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
-  locationSections LocationSection[]
-  zonePricing      ZonePricing?
+  zoneId String
+  zone   Zone   @relation(fields: [zoneId], references: [id], onDelete: Cascade)
 
+  locationSections LocationSection[]
+  zonePricings     ZonePricing[]
+
+  @@unique([locationId, zoneId])
   @@map("location_zones")
 }
 
@@ -412,10 +428,16 @@ model ZonePricing {
   locationZoneId String
   locationZone   LocationZone @relation(fields: [locationZoneId], references: [id], onDelete: Cascade)
 
+  zoneId String
+  zone   Zone   @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  @@unique([locationZoneId])
+  scheduleId String
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([locationZoneId, eventId, scheduleId])
   @@map("zone_pricings")
 }
 
@@ -484,6 +506,7 @@ model Schedule {
   scheduleWorkers ScheduleWorker[]
   bookingSeats    BookingSeat[]
   sessions        Session[]
+  zonePricings    ZonePricing[]
 
   @@index([startAt, endAt])
   @@index([eventId])

@@ -67,7 +67,10 @@ export const rolesData: RoleData[] = [
             'payment-methods:read',
             'payment-methods:update',
             'payment-methods:delete',
-            'payment-methods:toggle-active'
+            'payment-methods:toggle-active',
+            'support-tickets:read',
+            'support-tickets:update',
+            'support-tickets:delete',
         ],
     },
     {

@@ -11,6 +11,7 @@ import permissionRoutes from './permission.routes';
 import roleRoutes from './role.routes';
 import scheduleRoutes from './schedule.routes';
 import scheduleWorkerRoutes from './schedule-worker.routes';
+import supportTicketRoutes from './support-ticket.routes';
 import userRoutes from './user.routes';
 
 const router = Router();
@@ -27,5 +28,6 @@ router.use('/events', eventRoutes);
 router.use('/schedules', scheduleRoutes);
 router.use('/schedule-workers', scheduleWorkerRoutes);
 router.use("/payment-methods", paymentMethodRoutes);
+router.use('/support-tickets', supportTicketRoutes);
 
 export default router;

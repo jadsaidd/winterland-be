@@ -82,6 +82,11 @@ export const permissionsData: PermissionData[] = [
     { name: 'payment-methods:delete', resource: 'payment-methods', action: 'delete' },
     { name: 'payment-methods:toggle-active', resource: 'payment-methods', action: 'toggle-active' },
 
+    // Support Tickets
+    { name: 'support-tickets:read', resource: 'support-tickets', action: 'read' },
+    { name: 'support-tickets:update', resource: 'support-tickets', action: 'update' },
+    { name: 'support-tickets:delete', resource: 'support-tickets', action: 'delete' },
+
     // Activity Logs
     { name: 'activity_logs:read', resource: 'activity_logs', action: 'read' },
 ];

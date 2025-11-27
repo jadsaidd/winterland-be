@@ -2,10 +2,12 @@ import { Router } from 'express';
 
 import prisma from '../../utils/prisma.client';
 import healthRoutes from './health.routes';
+import supportTicketRoutes from './support-ticket.routes';
 
 const router = Router();
 
 router.use('/', healthRoutes);
+router.use('/support-tickets', supportTicketRoutes);
 
 // Returns active verifications - Used for testing purposes
 router.get('/verifications', async (req, res) => {

@@ -382,11 +382,23 @@ model LocationTemplate {
   @@map("location_templates")
 }
 
-model LocationZone {
+model Zone {
   id String @id @default(cuid())
 
-  type     ZoneType
+  type     ZoneType @unique
   priority Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locationZones LocationZone[]
+  zonePricings  ZonePricing[]
+
+  @@map("zones")
+}
+
+model LocationZone {
+  id String @id @default(cuid())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -394,9 +406,13 @@ model LocationZone {
   locationId String
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
-  locationSections LocationSection[]
-  zonePricing      ZonePricing?
+  zoneId String
+  zone   Zone   @relation(fields: [zoneId], references: [id], onDelete: Cascade)
 
+  locationSections LocationSection[]
+  zonePricings     ZonePricing[]
+
+  @@unique([locationId, zoneId])
   @@map("location_zones")
 }
 
@@ -412,10 +428,16 @@ model ZonePricing {
   locationZoneId String
   locationZone   LocationZone @relation(fields: [locationZoneId], references: [id], onDelete: Cascade)
 
+  zoneId String
+  zone   Zone   @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  @@unique([locationZoneId])
+  scheduleId String
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([locationZoneId, eventId, scheduleId])
   @@map("zone_pricings")
 }
 
@@ -455,6 +477,7 @@ model LocationSeat {
   id String @id @default(cuid())
 
   seatNumber Int
+  seatLabel  String // Format: ZONE-SECTION-ROW-SEAT (e.g., VVIP-C-1-1)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -465,6 +488,7 @@ model LocationSeat {
   seatsSessions SeatsSession[]
 
   @@unique([rowId, seatNumber])
+  @@index([seatLabel])
   @@map("location_seats")
 }
 
@@ -484,6 +508,8 @@ model Schedule {
   scheduleWorkers ScheduleWorker[]
   bookingSeats    BookingSeat[]
   sessions        Session[]
+  zonePricings    ZonePricing[]
+  bookings        Booking[]
 
   @@index([startAt, endAt])
   @@index([eventId])
@@ -695,6 +721,10 @@ model Booking {
   // Metadata
   notes Json?
 
+  // Admin booking tracking
+  isAdminBooking  Boolean @default(false)
+  bookedByAdminId String? // Admin user who created this booking
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -704,6 +734,10 @@ model Booking {
   // Direct booking: event reference
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  // Schedule reference (required for seated events)
+  scheduleId String?
+  schedule   Schedule? @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
 
   transactionId String?
   transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
@@ -726,6 +760,8 @@ model Booking {
   @@index([createdAt])
   @@index([cartId])
   @@index([cartItemId])
+  @@index([isAdminBooking])
+  @@index([scheduleId])
   @@map("bookings")
 }
 

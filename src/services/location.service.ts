@@ -1,6 +1,6 @@
 import slugify from 'slugify';
 
-import { NotFoundException } from '../exceptions/http.exception';
+import { BadRequestException, NotFoundException } from '../exceptions/http.exception';
 import { LocationRepository, LocationWithRelations } from '../repositories/location.repository';
 import { PaginatedResponse } from '../utils/pagination.util';
 
@@ -313,6 +313,220 @@ export class LocationService {
         }
 
         return template;
+    }
+
+    /**
+     * Get location zones with details and optional pricing info
+     */
+    async getLocationZones(
+        identifier: string,
+        options?: {
+            scheduleId?: string;
+            eventId?: string;
+        }
+    ): Promise<{
+        locationId: string;
+        locationName: any;
+        locationSlug: string;
+        zones: Array<{
+            id: string;
+            zoneId: string;
+            zone: {
+                id: string;
+                type: string;
+                priority: number;
+            };
+            totalSections: number;
+            totalSeats: number;
+            sections: Array<{
+                id: string;
+                position: string;
+                numberOfRows: number;
+                rows: Array<{
+                    id: string;
+                    rowNumber: number;
+                    order: number;
+                    seatCount: number;
+                }>;
+            }>;
+            pricings: Array<{
+                id: string;
+                originalPrice: number;
+                discountedPrice: number | null;
+                eventId: string;
+                scheduleId: string;
+                schedule: {
+                    id: string;
+                    startAt: Date;
+                    endAt: Date;
+                };
+            }>;
+        }>;
+    }> {
+        // First, get the location to ensure it exists
+        const location = await this.getLocationByIdOrSlug(identifier);
+
+        // Get zones with details
+        const locationZones = await this.locationRepository.getLocationZones(location.id, options);
+
+        // Transform the data for better response format
+        const transformedZones = locationZones.map((lz) => {
+            // Calculate total seats across all sections and rows
+            let totalSeats = 0;
+            const sections = lz.locationSections.map((section) => {
+                const rows = section.locationRows.map((row) => {
+                    totalSeats += row._count.seats;
+                    return {
+                        id: row.id,
+                        rowNumber: row.rowNumber,
+                        order: row.order,
+                        seatCount: row._count.seats,
+                    };
+                });
+
+                return {
+                    id: section.id,
+                    position: section.position,
+                    numberOfRows: section.numberOfRows,
+                    rows,
+                };
+            });
+
+            return {
+                id: lz.id,
+                zoneId: lz.zoneId,
+                zone: lz.zone,
+                totalSections: lz._count.locationSections,
+                totalSeats,
+                sections,
+                pricings: lz.zonePricings,
+            };
+        });
+
+        return {
+            locationId: location.id,
+            locationName: location.name,
+            locationSlug: location.locationSlug,
+            zones: transformedZones,
+        };
+    }
+
+    /**
+     * Set zone pricing for a location
+     * Takes scheduleId which determines the event and location context
+     */
+    async setZonePricing(
+        identifier: string,
+        data: {
+            scheduleId: string;
+            pricings: Array<{
+                locationZoneId: string;
+                originalPrice: number;
+                discountedPrice?: number | null;
+            }>;
+        }
+    ): Promise<{
+        locationId: string;
+        eventId: string;
+        scheduleId: string;
+        pricings: Array<{
+            id: string;
+            locationZoneId: string;
+            zoneId: string;
+            originalPrice: number;
+            discountedPrice: number | null;
+            createdAt: Date;
+            updatedAt: Date;
+        }>;
+    }> {
+        // First, get the location to ensure it exists
+        const location = await this.getLocationByIdOrSlug(identifier);
+
+        // Get schedule with event info to validate relationships
+        const schedule = await this.locationRepository.findScheduleById(data.scheduleId);
+        if (!schedule) {
+            throw new NotFoundException('Schedule not found');
+        }
+
+        // Validate that the schedule's event belongs to this location
+        if (schedule.event.locationId !== location.id) {
+            throw new BadRequestException(
+                'The schedule does not belong to an event at this location'
+            );
+        }
+
+        // Get all location zone IDs from the request
+        const requestedLocationZoneIds = data.pricings.map((p) => p.locationZoneId);
+
+        // Validate all location zones exist and belong to this location
+        const locationZones = await this.locationRepository.findLocationZonesByIds(
+            requestedLocationZoneIds
+        );
+
+        // Check if all requested location zones were found
+        const foundLocationZoneIds = new Set(locationZones.map((lz) => lz.id));
+        const missingZones = requestedLocationZoneIds.filter((id) => !foundLocationZoneIds.has(id));
+        if (missingZones.length > 0) {
+            throw new NotFoundException(
+                `Location zones not found: ${missingZones.join(', ')}`
+            );
+        }
+
+        // Check if all location zones belong to this location
+        const invalidZones = locationZones.filter((lz) => lz.locationId !== location.id);
+        if (invalidZones.length > 0) {
+            throw new BadRequestException(
+                `Some zones do not belong to this location: ${invalidZones.map((z) => z.id).join(', ')}`
+            );
+        }
+
+        // Create a map for quick lookup of zoneId by locationZoneId
+        const locationZoneMap = new Map(locationZones.map((lz) => [lz.id, lz.zoneId]));
+
+        // Validate pricing values
+        for (const pricing of data.pricings) {
+            if (pricing.originalPrice <= 0) {
+                throw new BadRequestException('Original price must be a positive number');
+            }
+            if (pricing.discountedPrice !== undefined && pricing.discountedPrice !== null) {
+                if (pricing.discountedPrice <= 0) {
+                    throw new BadRequestException('Discounted price must be a positive number');
+                }
+                if (pricing.discountedPrice >= pricing.originalPrice) {
+                    throw new BadRequestException(
+                        'Discounted price must be less than original price'
+                    );
+                }
+            }
+        }
+
+        // Prepare pricing data with all required fields
+        const pricingData = data.pricings.map((pricing) => ({
+            locationZoneId: pricing.locationZoneId,
+            zoneId: locationZoneMap.get(pricing.locationZoneId)!,
+            eventId: schedule.eventId,
+            scheduleId: data.scheduleId,
+            originalPrice: pricing.originalPrice,
+            discountedPrice: pricing.discountedPrice ?? null,
+        }));
+
+        // Set zone pricing (upsert)
+        const createdPricings = await this.locationRepository.setZonePricing(pricingData);
+
+        return {
+            locationId: location.id,
+            eventId: schedule.eventId,
+            scheduleId: data.scheduleId,
+            pricings: createdPricings.map((p) => ({
+                id: p.id,
+                locationZoneId: p.locationZoneId,
+                zoneId: p.zoneId,
+                originalPrice: p.originalPrice,
+                discountedPrice: p.discountedPrice,
+                createdAt: p.createdAt,
+                updatedAt: p.updatedAt,
+            })),
+        };
     }
 }
 

@@ -7,7 +7,9 @@ import { validate } from '../../middleware/validation.middleware';
 import {
     createLocationSchema,
     getLocationsQuerySchema,
+    getLocationZonesQuerySchema,
     locationIdentifierParamSchema,
+    setZonePricingSchema,
     toggleLocationActiveSchema,
     updateLocationSchema,
 } from '../../schemas/location.schema';
@@ -70,6 +72,38 @@ router.get(
     '/:identifier/template',
     validate(locationIdentifierParamSchema.shape.params as import('zod').ZodTypeAny, 'params'),
     dashboardLocationController.getLocationTemplate.bind(dashboardLocationController)
+);
+
+/**
+ * Get location zones with details and optional pricing info
+ * GET /api/v1/dashboard/locations/:identifier/zones
+ * 
+ * Query params:
+ * - scheduleId: Filter pricing by specific schedule
+ * - eventId: Filter pricing by specific event
+ */
+router.get(
+    '/:identifier/zones',
+    // authMiddleware,
+    // permissionMiddleware(['locations:read']),
+    validate(locationIdentifierParamSchema.shape.params as import('zod').ZodTypeAny, 'params'),
+    validate(getLocationZonesQuerySchema.shape.query as import('zod').ZodTypeAny, 'query'),
+    dashboardLocationController.getLocationZones.bind(dashboardLocationController)
+);
+
+/**
+ * Set zone pricing for a location
+ * POST /api/v1/dashboard/locations/:identifier/zone-pricing
+ * 
+ * Creates or updates zone pricing. Uses scheduleId to determine event context.
+ */
+router.post(
+    '/:identifier/zone-pricing',
+    authMiddleware,
+    // permissionMiddleware(['locations:set-zone-pricing']),
+    validate(locationIdentifierParamSchema.shape.params as import('zod').ZodTypeAny, 'params'),
+    validate(setZonePricingSchema.shape.body as import('zod').ZodTypeAny),
+    dashboardLocationController.setZonePricing.bind(dashboardLocationController)
 );
 
 /**

@@ -18,6 +18,7 @@ export interface LocationWithRelations {
     longitude: number | null;
     createdAt: Date;
     updatedAt: Date;
+    hasZones: boolean; // Indicates if location has zones/sections/rows/seats configured
     locationMedias: Array<{
         id: string;
         sortOrder: number | null;
@@ -36,6 +37,9 @@ export interface LocationWithRelations {
         eventSlug: string;
         active: boolean;
     }>;
+    _count?: {
+        locationZones: number;
+    };
 }
 
 /**
@@ -56,7 +60,7 @@ export class LocationRepository {
         latitude?: number;
         longitude?: number;
     }): Promise<LocationWithRelations> {
-        return await prisma.location.create({
+        const location = await prisma.location.create({
             data,
             include: {
                 locationMedias: {
@@ -75,15 +79,24 @@ export class LocationRepository {
                         active: true,
                     },
                 },
+                _count: {
+                    select: {
+                        locationZones: true,
+                    },
+                },
             },
-        }) as LocationWithRelations;
+        });
+        return {
+            ...location,
+            hasZones: location._count.locationZones > 0,
+        } as LocationWithRelations;
     }
 
     /**
      * Find location by ID
      */
     async findById(id: string): Promise<LocationWithRelations | null> {
-        return await prisma.location.findUnique({
+        const location = await prisma.location.findUnique({
             where: { id },
             include: {
                 locationMedias: {
@@ -102,15 +115,25 @@ export class LocationRepository {
                         active: true,
                     },
                 },
+                _count: {
+                    select: {
+                        locationZones: true,
+                    },
+                },
             },
-        }) as LocationWithRelations | null;
+        });
+        if (!location) return null;
+        return {
+            ...location,
+            hasZones: location._count.locationZones > 0,
+        } as LocationWithRelations;
     }
 
     /**
      * Find location by slug
      */
     async findBySlug(slug: string): Promise<LocationWithRelations | null> {
-        return await prisma.location.findUnique({
+        const location = await prisma.location.findUnique({
             where: { locationSlug: slug },
             include: {
                 locationMedias: {
@@ -129,8 +152,18 @@ export class LocationRepository {
                         active: true,
                     },
                 },
+                _count: {
+                    select: {
+                        locationZones: true,
+                    },
+                },
             },
-        }) as LocationWithRelations | null;
+        });
+        if (!location) return null;
+        return {
+            ...location,
+            hasZones: location._count.locationZones > 0,
+        } as LocationWithRelations;
     }
 
     /**
@@ -241,6 +274,11 @@ export class LocationRepository {
                             active: true,
                         },
                     },
+                    _count: {
+                        select: {
+                            locationZones: true,
+                        },
+                    },
                 },
                 orderBy: {
                     createdAt: 'desc',
@@ -249,7 +287,13 @@ export class LocationRepository {
             prisma.location.count({ where }),
         ]);
 
-        return createPaginatedResponse(locations as LocationWithRelations[], total, page, limit);
+        // Transform locations to include hasZones
+        const locationsWithHasZones = locations.map((location: (typeof locations)[number]) => ({
+            ...location,
+            hasZones: location._count.locationZones > 0,
+        })) as LocationWithRelations[];
+
+        return createPaginatedResponse(locationsWithHasZones, total, page, limit);
     }
 
     /**
@@ -267,7 +311,7 @@ export class LocationRepository {
             longitude?: number | null;
         }
     ): Promise<LocationWithRelations> {
-        return await prisma.location.update({
+        const location = await prisma.location.update({
             where: { id },
             data,
             include: {
@@ -287,15 +331,24 @@ export class LocationRepository {
                         active: true,
                     },
                 },
+                _count: {
+                    select: {
+                        locationZones: true,
+                    },
+                },
             },
-        }) as LocationWithRelations;
+        });
+        return {
+            ...location,
+            hasZones: location._count.locationZones > 0,
+        } as LocationWithRelations;
     }
 
     /**
      * Toggle location active status
      */
     async toggleActive(id: string, active: boolean): Promise<LocationWithRelations> {
-        return await prisma.location.update({
+        const location = await prisma.location.update({
             where: { id },
             data: { active },
             include: {
@@ -315,8 +368,17 @@ export class LocationRepository {
                         active: true,
                     },
                 },
+                _count: {
+                    select: {
+                        locationZones: true,
+                    },
+                },
             },
-        }) as LocationWithRelations;
+        });
+        return {
+            ...location,
+            hasZones: location._count.locationZones > 0,
+        } as LocationWithRelations;
     }
 
     /**
@@ -548,7 +610,7 @@ export class LocationRepository {
     }
 
     /**
-     * Get location template by location ID
+ * Get location template by location ID
      */
     async getTemplateByLocationId(locationId: string): Promise<{
         id: string;
@@ -561,6 +623,271 @@ export class LocationRepository {
     } | null> {
         return await prisma.locationTemplate.findUnique({
             where: { locationId },
+        });
+    }
+
+    /**
+     * Get location zones with optional pricing info
+     */
+    async getLocationZones(
+        locationId: string,
+        options?: {
+            scheduleId?: string;
+            eventId?: string;
+        }
+    ): Promise<Array<{
+        id: string;
+        zoneId: string;
+        zone: {
+            id: string;
+            type: string;
+            priority: number;
+        };
+        locationSections: Array<{
+            id: string;
+            position: string;
+            numberOfRows: number;
+            locationRows: Array<{
+                id: string;
+                rowNumber: number;
+                order: number;
+                _count: {
+                    seats: number;
+                };
+            }>;
+        }>;
+        zonePricings: Array<{
+            id: string;
+            originalPrice: number;
+            discountedPrice: number | null;
+            eventId: string;
+            scheduleId: string;
+            schedule: {
+                id: string;
+                startAt: Date;
+                endAt: Date;
+            };
+        }>;
+        _count: {
+            locationSections: number;
+        };
+    }>> {
+        // Build zone pricing where clause
+        const zonePricingWhere: any = {};
+        if (options?.scheduleId) {
+            zonePricingWhere.scheduleId = options.scheduleId;
+        }
+        if (options?.eventId) {
+            zonePricingWhere.eventId = options.eventId;
+        }
+
+        const locationZones = await prisma.locationZone.findMany({
+            where: {
+                locationId,
+            },
+            include: {
+                zone: {
+                    select: {
+                        id: true,
+                        type: true,
+                        priority: true,
+                    },
+                },
+                locationSections: {
+                    select: {
+                        id: true,
+                        position: true,
+                        numberOfRows: true,
+                        locationRows: {
+                            select: {
+                                id: true,
+                                rowNumber: true,
+                                order: true,
+                                _count: {
+                                    select: {
+                                        seats: true,
+                                    },
+                                },
+                            },
+                            orderBy: {
+                                rowNumber: 'asc',
+                            },
+                        },
+                    },
+                },
+                zonePricings: {
+                    where: Object.keys(zonePricingWhere).length > 0 ? zonePricingWhere : undefined,
+                    select: {
+                        id: true,
+                        originalPrice: true,
+                        discountedPrice: true,
+                        eventId: true,
+                        scheduleId: true,
+                        schedule: {
+                            select: {
+                                id: true,
+                                startAt: true,
+                                endAt: true,
+                            },
+                        },
+                    },
+                },
+                _count: {
+                    select: {
+                        locationSections: true,
+                    },
+                },
+            },
+            orderBy: {
+                zone: {
+                    priority: 'asc',
+                },
+            },
+        });
+
+        return locationZones;
+    }
+
+    /**
+     * Find location zone by ID
+     */
+    async findLocationZoneById(locationZoneId: string): Promise<{
+        id: string;
+        locationId: string;
+        zoneId: string;
+    } | null> {
+        return await prisma.locationZone.findUnique({
+            where: { id: locationZoneId },
+            select: {
+                id: true,
+                locationId: true,
+                zoneId: true,
+            },
+        });
+    }
+
+    /**
+     * Find multiple location zones by IDs
+     */
+    async findLocationZonesByIds(locationZoneIds: string[]): Promise<Array<{
+        id: string;
+        locationId: string;
+        zoneId: string;
+    }>> {
+        return await prisma.locationZone.findMany({
+            where: {
+                id: { in: locationZoneIds },
+            },
+            select: {
+                id: true,
+                locationId: true,
+                zoneId: true,
+            },
+        });
+    }
+
+    /**
+     * Find schedule by ID with event info
+     */
+    async findScheduleById(scheduleId: string): Promise<{
+        id: string;
+        eventId: string;
+        event: {
+            id: string;
+            locationId: string;
+        };
+    } | null> {
+        return await prisma.schedule.findUnique({
+            where: { id: scheduleId },
+            select: {
+                id: true,
+                eventId: true,
+                event: {
+                    select: {
+                        id: true,
+                        locationId: true,
+                    },
+                },
+            },
+        });
+    }
+
+    /**
+     * Set zone pricing (upsert - create or update)
+     * Uses transaction to ensure atomicity
+     */
+    async setZonePricing(
+        pricings: Array<{
+            locationZoneId: string;
+            zoneId: string;
+            eventId: string;
+            scheduleId: string;
+            originalPrice: number;
+            discountedPrice?: number | null;
+        }>
+    ): Promise<Array<{
+        id: string;
+        locationZoneId: string;
+        zoneId: string;
+        eventId: string;
+        scheduleId: string;
+        originalPrice: number;
+        discountedPrice: number | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>> {
+        return await prisma.$transaction(
+            pricings.map((pricing) =>
+                prisma.zonePricing.upsert({
+                    where: {
+                        locationZoneId_eventId_scheduleId: {
+                            locationZoneId: pricing.locationZoneId,
+                            eventId: pricing.eventId,
+                            scheduleId: pricing.scheduleId,
+                        },
+                    },
+                    create: {
+                        locationZoneId: pricing.locationZoneId,
+                        zoneId: pricing.zoneId,
+                        eventId: pricing.eventId,
+                        scheduleId: pricing.scheduleId,
+                        originalPrice: pricing.originalPrice,
+                        discountedPrice: pricing.discountedPrice ?? null,
+                    },
+                    update: {
+                        originalPrice: pricing.originalPrice,
+                        discountedPrice: pricing.discountedPrice ?? null,
+                    },
+                })
+            )
+        );
+    }
+
+    /**
+     * Get zone pricing by location zone, event and schedule
+     */
+    async getZonePricing(
+        locationZoneId: string,
+        eventId: string,
+        scheduleId: string
+    ): Promise<{
+        id: string;
+        originalPrice: number;
+        discountedPrice: number | null;
+    } | null> {
+        return await prisma.zonePricing.findUnique({
+            where: {
+                locationZoneId_eventId_scheduleId: {
+                    locationZoneId,
+                    eventId,
+                    scheduleId,
+                },
+            },
+            select: {
+                id: true,
+                originalPrice: true,
+                discountedPrice: true,
+            },
         });
     }
 }

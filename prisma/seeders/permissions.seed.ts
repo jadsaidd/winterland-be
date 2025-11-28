@@ -56,6 +56,7 @@ export const permissionsData: PermissionData[] = [
     { name: 'locations:update', resource: 'locations', action: 'update' },
     { name: 'locations:delete', resource: 'locations', action: 'delete' },
     { name: 'locations:toggle-active', resource: 'locations', action: 'toggle-active' },
+    { name: 'locations:set-zone-pricing', resource: 'locations', action: 'set-zone-pricing' },
 
     // Events
     { name: 'events:create', resource: 'events', action: 'create' },
@@ -82,8 +83,19 @@ export const permissionsData: PermissionData[] = [
     { name: 'payment-methods:delete', resource: 'payment-methods', action: 'delete' },
     { name: 'payment-methods:toggle-active', resource: 'payment-methods', action: 'toggle-active' },
 
+    // Support Tickets
+    { name: 'support-tickets:read', resource: 'support-tickets', action: 'read' },
+    { name: 'support-tickets:update', resource: 'support-tickets', action: 'update' },
+    { name: 'support-tickets:delete', resource: 'support-tickets', action: 'delete' },
+
     // Activity Logs
     { name: 'activity_logs:read', resource: 'activity_logs', action: 'read' },
+
+    // Bookings (Dashboard Admin)
+    { name: 'bookings:create', resource: 'bookings', action: 'create' },
+    { name: 'bookings:read', resource: 'bookings', action: 'read' },
+    { name: 'bookings:update', resource: 'bookings', action: 'update' },
+    { name: 'bookings:delete', resource: 'bookings', action: 'delete' },
 ];
 
 export async function seedPermissions() {

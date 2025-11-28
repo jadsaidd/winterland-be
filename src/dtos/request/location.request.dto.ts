@@ -41,3 +41,28 @@ export interface GetLocationsQueryDto {
     type?: 'STADIUM' | 'ARENA' | 'THEATRE' | 'HALL' | 'OUTDOOR' | 'INDOOR' | 'OTHER';
     search?: string;
 }
+
+/**
+ * Query params for getting location zones
+ */
+export interface GetLocationZonesQueryDto {
+    scheduleId?: string;
+    eventId?: string;
+}
+
+/**
+ * Single zone pricing item
+ */
+export interface ZonePricingItemDto {
+    locationZoneId: string;
+    originalPrice: number;
+    discountedPrice?: number | null;
+}
+
+/**
+ * Request body for setting zone pricing
+ */
+export interface SetZonePricingRequestDto {
+    scheduleId: string;
+    pricings: ZonePricingItemDto[];
+}

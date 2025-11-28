@@ -1,4 +1,4 @@
-import { Booking, BookingStatus } from '@prisma/client';
+import { Booking, BookingStatus, SectionPosition, ZoneType } from '@prisma/client';
 
 import { createPaginatedResponse, PaginatedResponse } from '../utils/pagination.util';
 import { prisma } from '../utils/prisma.client';
@@ -307,6 +307,478 @@ export class BookingRepository {
                 status: 'CHECKED_OUT',
                 checkedOutAt: new Date(),
             },
+        });
+    }
+
+    // ==================== ADMIN BOOKING METHODS ====================
+
+    /**
+     * Create admin booking for non-seated events
+     */
+    async createAdminBooking(data: {
+        bookingNumber: string;
+        userId: string;
+        eventId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        currency: string;
+        status: BookingStatus;
+        isAdminBooking: boolean;
+        bookedByAdminId: string;
+        scheduleId?: string;
+    }): Promise<Booking> {
+        return await prisma.booking.create({
+            data,
+        });
+    }
+
+    /**
+     * Create admin booking with seat reservations (transaction)
+     */
+    async createAdminBookingWithSeats(data: {
+        bookingNumber: string;
+        userId: string;
+        eventId: string;
+        scheduleId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        currency: string;
+        status: BookingStatus;
+        isAdminBooking: boolean;
+        bookedByAdminId: string;
+        seats: Array<{
+            seatId: string;
+            zoneType: ZoneType;
+            sectionPosition: SectionPosition;
+            rowNumber: number;
+            seatNumber: number;
+        }>;
+    }): Promise<Booking> {
+        return await prisma.$transaction(async (tx: any) => {
+            // Create booking
+            const booking = await tx.booking.create({
+                data: {
+                    bookingNumber: data.bookingNumber,
+                    userId: data.userId,
+                    eventId: data.eventId,
+                    scheduleId: data.scheduleId,
+                    quantity: data.quantity,
+                    unitPrice: data.unitPrice,
+                    totalPrice: data.totalPrice,
+                    currency: data.currency,
+                    status: data.status,
+                    isAdminBooking: data.isAdminBooking,
+                    bookedByAdminId: data.bookedByAdminId,
+                },
+            });
+
+            // Create booking seats
+            await tx.bookingSeat.createMany({
+                data: data.seats.map((seat) => ({
+                    seatId: seat.seatId,
+                    scheduleId: data.scheduleId,
+                    userId: data.userId,
+                    bookingId: booking.id,
+                    isAdminLocked: true,
+                    isReserved: true,
+                    zoneType: seat.zoneType,
+                    sectionPosition: seat.sectionPosition,
+                    rowNumberSnapshot: seat.rowNumber,
+                    seatNumberSnapshot: seat.seatNumber,
+                })),
+            });
+
+            return booking;
+        });
+    }
+
+    /**
+     * Check if seats are already reserved for a schedule
+     */
+    async checkSeatsAvailability(
+        seatIds: string[],
+        scheduleId: string
+    ): Promise<{ available: boolean; reservedSeats: string[] }> {
+        const reservedSeats = await prisma.bookingSeat.findMany({
+            where: {
+                seatId: { in: seatIds },
+                scheduleId,
+                isReserved: true,
+            },
+            select: {
+                seatId: true,
+                seat: {
+                    select: {
+                        seatLabel: true,
+                    },
+                },
+            },
+        });
+
+        return {
+            available: reservedSeats.length === 0,
+            reservedSeats: reservedSeats.map((s: any) => s.seat.seatLabel),
+        };
+    }
+
+    /**
+     * Get seat details with zone/section/row info
+     */
+    async getSeatDetails(seatIds: string[]): Promise<
+        Array<{
+            id: string;
+            seatNumber: number;
+            seatLabel: string;
+            row: {
+                id: string;
+                rowNumber: number;
+                section: {
+                    id: string;
+                    position: SectionPosition;
+                    locationZone: {
+                        id: string;
+                        zone: {
+                            id: string;
+                            type: ZoneType;
+                        };
+                    };
+                };
+            };
+        }>
+    > {
+        return await prisma.locationSeat.findMany({
+            where: {
+                id: { in: seatIds },
+            },
+            select: {
+                id: true,
+                seatNumber: true,
+                seatLabel: true,
+                row: {
+                    select: {
+                        id: true,
+                        rowNumber: true,
+                        section: {
+                            select: {
+                                id: true,
+                                position: true,
+                                locationZone: {
+                                    select: {
+                                        id: true,
+                                        zone: {
+                                            select: {
+                                                id: true,
+                                                type: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    /**
+     * Get zone pricing for specific zone, event, and schedule
+     */
+    async getZonePricing(
+        locationZoneId: string,
+        eventId: string,
+        scheduleId: string
+    ): Promise<{
+        id: string;
+        originalPrice: number;
+        discountedPrice: number | null;
+    } | null> {
+        return await prisma.zonePricing.findUnique({
+            where: {
+                locationZoneId_eventId_scheduleId: {
+                    locationZoneId,
+                    eventId,
+                    scheduleId,
+                },
+            },
+            select: {
+                id: true,
+                originalPrice: true,
+                discountedPrice: true,
+            },
+        });
+    }
+
+    /**
+     * Find all bookings with filters and pagination (dashboard)
+     */
+    async findAllWithFilters(
+        page: number,
+        limit: number,
+        filters?: {
+            status?: BookingStatus;
+            eventId?: string;
+            scheduleId?: string;
+            userId?: string;
+            isAdminBooking?: boolean;
+            startDate?: Date;
+            endDate?: Date;
+            search?: string;
+        }
+    ): Promise<PaginatedResponse<any>> {
+        const skip = (page - 1) * limit;
+
+        const where: any = {
+            isActive: true,
+        };
+
+        if (filters?.status) {
+            where.status = filters.status;
+        }
+
+        if (filters?.eventId) {
+            where.eventId = filters.eventId;
+        }
+
+        if (filters?.scheduleId) {
+            where.scheduleId = filters.scheduleId;
+        }
+
+        if (filters?.userId) {
+            where.userId = filters.userId;
+        }
+
+        if (filters?.isAdminBooking !== undefined) {
+            where.isAdminBooking = filters.isAdminBooking;
+        }
+
+        // Date range filter (by booking creation date)
+        if (filters?.startDate || filters?.endDate) {
+            where.createdAt = {};
+
+            if (filters.startDate) {
+                where.createdAt.gte = filters.startDate;
+            }
+
+            if (filters.endDate) {
+                where.createdAt.lte = filters.endDate;
+            }
+        }
+
+        // Search filter (booking number or user name)
+        if (filters?.search) {
+            where.OR = [
+                { bookingNumber: { contains: filters.search, mode: 'insensitive' } },
+                { user: { name: { contains: filters.search, mode: 'insensitive' } } },
+                { user: { email: { contains: filters.search, mode: 'insensitive' } } },
+                { user: { phoneNumber: { contains: filters.search, mode: 'insensitive' } } },
+            ];
+        }
+
+        const [bookings, total] = await Promise.all([
+            prisma.booking.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: {
+                    createdAt: 'desc',
+                },
+                include: {
+                    event: {
+                        select: {
+                            id: true,
+                            name: true,
+                            eventSlug: true,
+                            haveSeats: true,
+                            startAt: true,
+                            endAt: true,
+                            active: true,
+                            eventMedias: {
+                                include: {
+                                    media: true,
+                                },
+                                orderBy: {
+                                    sortOrder: 'asc',
+                                },
+                                take: 1,
+                            },
+                        },
+                    },
+                    schedule: {
+                        select: {
+                            id: true,
+                            startAt: true,
+                            endAt: true,
+                        },
+                    },
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phoneNumber: true,
+                        },
+                    },
+                    bookingSeats: {
+                        select: {
+                            id: true,
+                            zoneType: true,
+                            sectionPosition: true,
+                            rowNumberSnapshot: true,
+                            seatNumberSnapshot: true,
+                            seat: {
+                                select: {
+                                    id: true,
+                                    seatLabel: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+            prisma.booking.count({ where }),
+        ]);
+
+        return createPaginatedResponse(bookings, total, page, limit);
+    }
+
+    /**
+     * Find booking by ID with full details (dashboard version)
+     */
+    async findByIdWithFullDetails(bookingId: string) {
+        return await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: {
+                event: {
+                    select: {
+                        id: true,
+                        name: true,
+                        eventSlug: true,
+                        description: true,
+                        originalPrice: true,
+                        discountedPrice: true,
+                        haveSeats: true,
+                        startAt: true,
+                        endAt: true,
+                        active: true,
+                        location: {
+                            select: {
+                                id: true,
+                                name: true,
+                                locationSlug: true,
+                                type: true,
+                            },
+                        },
+                        eventMedias: {
+                            include: {
+                                media: true,
+                            },
+                            orderBy: {
+                                sortOrder: 'asc',
+                            },
+                        },
+                        eventCategories: {
+                            include: {
+                                category: {
+                                    select: {
+                                        id: true,
+                                        title: true,
+                                        categorySlug: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                schedule: {
+                    select: {
+                        id: true,
+                        startAt: true,
+                        endAt: true,
+                        details: true,
+                    },
+                },
+                transaction: {
+                    select: {
+                        id: true,
+                        amount: true,
+                        currency: true,
+                        platform: true,
+                        channel: true,
+                        action: true,
+                        status: true,
+                        completedBy: true,
+                        completedAt: true,
+                        createdAt: true,
+                    },
+                },
+                paymentMethod: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phoneNumber: true,
+                        userApplicationData: {
+                            select: {
+                                isGuestUser: true,
+                            },
+                        },
+                    },
+                },
+                bookingSeats: {
+                    select: {
+                        id: true,
+                        zoneType: true,
+                        sectionPosition: true,
+                        rowNumberSnapshot: true,
+                        seatNumberSnapshot: true,
+                        isAdminLocked: true,
+                        seat: {
+                            select: {
+                                id: true,
+                                seatLabel: true,
+                                seatNumber: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    /**
+     * Cancel booking and release seats
+     */
+    async cancelBookingWithSeats(
+        bookingId: string,
+        cancelReason: string
+    ): Promise<Booking> {
+        return await prisma.$transaction(async (tx: any) => {
+            // Update booking status
+            const booking = await tx.booking.update({
+                where: { id: bookingId },
+                data: {
+                    status: 'CANCELLED',
+                    cancelledAt: new Date(),
+                    cancelReason,
+                },
+            });
+
+            // Release all seats associated with this booking
+            await tx.bookingSeat.deleteMany({
+                where: { bookingId },
+            });
+
+            return booking;
         });
     }
 }

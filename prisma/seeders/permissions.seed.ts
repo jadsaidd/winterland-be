@@ -90,6 +90,12 @@ export const permissionsData: PermissionData[] = [
 
     // Activity Logs
     { name: 'activity_logs:read', resource: 'activity_logs', action: 'read' },
+
+    // Bookings (Dashboard Admin)
+    { name: 'bookings:create', resource: 'bookings', action: 'create' },
+    { name: 'bookings:read', resource: 'bookings', action: 'read' },
+    { name: 'bookings:update', resource: 'bookings', action: 'update' },
+    { name: 'bookings:delete', resource: 'bookings', action: 'delete' },
 ];
 
 export async function seedPermissions() {

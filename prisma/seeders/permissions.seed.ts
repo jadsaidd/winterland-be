@@ -56,6 +56,7 @@ export const permissionsData: PermissionData[] = [
     { name: 'locations:update', resource: 'locations', action: 'update' },
     { name: 'locations:delete', resource: 'locations', action: 'delete' },
     { name: 'locations:toggle-active', resource: 'locations', action: 'toggle-active' },
+    { name: 'locations:set-zone-pricing', resource: 'locations', action: 'set-zone-pricing' },
 
     // Events
     { name: 'events:create', resource: 'events', action: 'create' },

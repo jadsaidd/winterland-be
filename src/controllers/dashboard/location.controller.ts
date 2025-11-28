@@ -3,6 +3,8 @@ import { NextFunction, Request, Response } from 'express';
 import {
     CreateLocationInput,
     GetLocationsQuery,
+    GetLocationZonesQuery,
+    SetZonePricingInput,
     ToggleLocationActiveInput,
     UpdateLocationInput,
 } from '../../schemas/location.schema';
@@ -169,6 +171,58 @@ export class DashboardLocationController {
                 success: true,
                 message: 'Location template retrieved successfully',
                 data: template,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get location zones with details and optional pricing info
+     * GET /api/v1/dashboard/locations/:identifier/zones
+     * 
+     * Query params:
+     * - scheduleId: Filter pricing by specific schedule
+     * - eventId: Filter pricing by specific event
+     */
+    async getLocationZones(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { identifier } = req.params;
+            const { scheduleId, eventId } = req.query as GetLocationZonesQuery;
+
+            const zones = await locationService.getLocationZones(identifier, {
+                scheduleId,
+                eventId,
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'Location zones retrieved successfully',
+                data: zones,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Set zone pricing for a location
+     * POST /api/v1/dashboard/locations/:identifier/zone-pricing
+     * 
+     * Creates or updates zone pricing based on schedule context.
+     * The schedule determines the event and validates location relationship.
+     */
+    async setZonePricing(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { identifier } = req.params;
+            const data: SetZonePricingInput = req.body;
+
+            const result = await locationService.setZonePricing(identifier, data);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Zone pricing set successfully',
+                data: result,
             });
         } catch (error) {
             next(error);

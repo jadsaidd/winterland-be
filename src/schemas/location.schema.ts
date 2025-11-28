@@ -102,8 +102,41 @@ export const getLocationsQuerySchema = z.object({
     }),
 });
 
+/**
+ * Schema for query parameters in get location zones
+ */
+export const getLocationZonesQuerySchema = z.object({
+    query: z.object({
+        scheduleId: z.string().optional(),
+        eventId: z.string().optional(),
+    }),
+});
+
+/**
+ * Single zone pricing item in the array
+ */
+const zonePricingItemSchema = z.object({
+    locationZoneId: z.string().min(1, 'Location zone ID is required'),
+    originalPrice: z.number().positive('Original price must be a positive number'),
+    discountedPrice: z.number().positive('Discounted price must be a positive number').optional().nullable(),
+});
+
+/**
+ * Schema for setting zone pricing
+ * Takes scheduleId which determines the event and location context
+ */
+export const setZonePricingSchema = z.object({
+    body: z.object({
+        scheduleId: z.string().min(1, 'Schedule ID is required'),
+        pricings: z.array(zonePricingItemSchema).min(1, 'At least one pricing item is required'),
+    }),
+});
+
 export type CreateLocationInput = z.infer<typeof createLocationSchema>['body'];
 export type UpdateLocationInput = z.infer<typeof updateLocationSchema>['body'];
 export type ToggleLocationActiveInput = z.infer<typeof toggleLocationActiveSchema>['body'];
 export type LocationIdentifierParam = z.infer<typeof locationIdentifierParamSchema>['params'];
 export type GetLocationsQuery = z.infer<typeof getLocationsQuerySchema>['query'];
+export type GetLocationZonesQuery = z.infer<typeof getLocationZonesQuerySchema>['query'];
+export type SetZonePricingInput = z.infer<typeof setZonePricingSchema>['body'];
+export type ZonePricingItem = z.infer<typeof zonePricingItemSchema>;

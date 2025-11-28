@@ -385,7 +385,7 @@ model LocationTemplate {
 model Zone {
   id String @id @default(cuid())
 
-  type     ZoneType
+  type     ZoneType @unique
   priority Int
 
   createdAt DateTime @default(now())
@@ -477,6 +477,7 @@ model LocationSeat {
   id String @id @default(cuid())
 
   seatNumber Int
+  seatLabel  String // Format: ZONE-SECTION-ROW-SEAT (e.g., VVIP-C-1-1)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -487,6 +488,7 @@ model LocationSeat {
   seatsSessions SeatsSession[]
 
   @@unique([rowId, seatNumber])
+  @@index([seatLabel])
   @@map("location_seats")
 }
 

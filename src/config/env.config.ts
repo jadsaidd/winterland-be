@@ -28,6 +28,9 @@ interface Config {
 
   // Wallet
   DEFAULT_CURRENCY: string;
+
+  // Client URLs
+  CLIENT_SESSION_URL: string;
 }
 
 // Required environment variables
@@ -68,7 +71,10 @@ const config: Config = {
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
 
   // Wallet
-  DEFAULT_CURRENCY: process.env.DEFAULT_CURRENCY || 'AED'
+  DEFAULT_CURRENCY: process.env.DEFAULT_CURRENCY || 'AED',
+
+  // Client URLs
+  CLIENT_SESSION_URL: process.env.CLIENT_SESSION_URL || 'https://winterland.ae/seats',
 };
 
 export default config;

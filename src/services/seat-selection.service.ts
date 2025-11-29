@@ -1,3 +1,5 @@
+import { SectionPosition, ZoneType } from '@prisma/client';
+
 import { logger } from '../config';
 import { BadRequestException, NotFoundException } from '../exceptions/http.exception';
 import seatSelectionRepository, {
@@ -7,6 +9,41 @@ import seatSelectionRepository, {
     SectionWithRows,
     ZoneWithPricing,
 } from '../repositories/seat-selection.repository';
+
+/**
+ * Reserved seat with booking details
+ */
+export interface ReservedSeatInfo {
+    id: string;
+    seatId: string;
+    seatLabel: string;
+    seatNumber: number;
+    rowNumber: number;
+    sectionPosition: SectionPosition;
+    zoneType: ZoneType;
+    zonePriority: number;
+    isAdminLocked: boolean;
+    reservedAt: Date;
+    booking: {
+        id: string;
+        bookingNumber: string;
+        status: string;
+        isAdminBooking: boolean;
+        createdAt: Date;
+        customer: {
+            id: string;
+            name: string | null;
+            email: string | null;
+            phoneNumber: string | null;
+        };
+    } | null;
+    reservedBy: {
+        id: string;
+        name: string | null;
+        email: string | null;
+        phoneNumber: string | null;
+    } | null;
+}
 
 /**
  * Seat Selection Service
@@ -434,6 +471,101 @@ export class SeatSelectionService {
                 seats: seatsWithDetails,
                 allAvailable: availability.available,
                 unavailableSeats: availability.unavailableSeats.map((s) => s.seatLabel),
+            },
+        };
+    }
+
+    /**
+     * Get all reserved seats for a schedule
+     * Returns detailed information about each reserved seat including booking and user info
+     */
+    async getReservedSeatsForSchedule(
+        eventId: string,
+        scheduleId: string
+    ): Promise<{
+        success: boolean;
+        data: {
+            eventId: string;
+            scheduleId: string;
+            locationId: string;
+            reservedSeats: ReservedSeatInfo[];
+            summary: {
+                totalReservedSeats: number;
+                adminLockedSeats: number;
+                bookedSeats: number;
+            };
+        };
+    }> {
+        // Validate schedule and get event info
+        const { schedule, locationId } = await this.validateSchedule(scheduleId);
+
+        // Validate eventId matches the schedule's event
+        if (schedule.eventId !== eventId) {
+            throw new BadRequestException(
+                'The provided eventId does not match the schedule\'s event'
+            );
+        }
+
+        // Get reserved seats
+        const reservedSeats = await seatSelectionRepository.getReservedSeatsForSchedule(scheduleId);
+
+        // Transform to response format
+        const transformedSeats: ReservedSeatInfo[] = reservedSeats.map((rs) => ({
+            id: rs.id,
+            seatId: rs.seatId,
+            seatLabel: rs.seat.seatLabel,
+            seatNumber: rs.seat.seatNumber,
+            rowNumber: rs.seat.row.rowNumber,
+            sectionPosition: rs.seat.row.section.position,
+            zoneType: rs.seat.row.section.locationZone.zone.type,
+            zonePriority: rs.seat.row.section.locationZone.zone.priority,
+            isAdminLocked: rs.isAdminLocked,
+            reservedAt: rs.createdAt,
+            booking: rs.booking
+                ? {
+                    id: rs.booking.id,
+                    bookingNumber: rs.booking.bookingNumber,
+                    status: rs.booking.status,
+                    isAdminBooking: rs.booking.isAdminBooking,
+                    createdAt: rs.booking.createdAt,
+                    customer: {
+                        id: rs.booking.user.id,
+                        name: rs.booking.user.name,
+                        email: rs.booking.user.email,
+                        phoneNumber: rs.booking.user.phoneNumber,
+                    },
+                }
+                : null,
+            reservedBy: rs.user
+                ? {
+                    id: rs.user.id,
+                    name: rs.user.name,
+                    email: rs.user.email,
+                    phoneNumber: rs.user.phoneNumber,
+                }
+                : null,
+        }));
+
+        // Calculate summary
+        const adminLockedSeats = transformedSeats.filter((s) => s.isAdminLocked).length;
+        const bookedSeats = transformedSeats.filter((s) => s.booking !== null).length;
+
+        logger.info(
+            `Retrieved ${transformedSeats.length} reserved seats for event ${eventId}, schedule ${scheduleId}`
+        );
+
+        return {
+            success: true,
+            data: {
+                eventId,
+                scheduleId,
+                locationId,
+                reservedSeats: transformedSeats,
+                summary: {
+                    totalReservedSeats: transformedSeats.length,
+                    adminLockedSeats,
+                    bookedSeats,
+                },
             },
         };
     }

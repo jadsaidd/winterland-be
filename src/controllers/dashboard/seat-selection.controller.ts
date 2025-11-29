@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import {
     CheckAvailabilityBody,
     CheckAvailabilityParams,
+    GetReservedSeatsParams,
     GetRowsParams,
     GetSeatMapParams,
     GetSeatsParams,
@@ -144,6 +145,27 @@ export class DashboardSeatSelectionController {
             const { scheduleId, seatIds } = req.body as ValidateSeatsBody;
 
             const result = await seatSelectionService.validateSeatsForBooking(scheduleId, seatIds);
+
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Get all reserved seats for an event and schedule
+     * GET /api/v1/dashboard/seat-selection/events/:eventId/schedules/:scheduleId/reserved-seats
+     * 
+     * Returns all reserved/booked seats with booking and user details
+     */
+    getReservedSeats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { eventId, scheduleId } = req.params as unknown as GetReservedSeatsParams;
+
+            const result = await seatSelectionService.getReservedSeatsForSchedule(
+                eventId,
+                scheduleId
+            );
 
             res.status(200).json(result);
         } catch (error) {

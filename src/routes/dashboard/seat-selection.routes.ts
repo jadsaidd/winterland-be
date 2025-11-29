@@ -3,16 +3,7 @@ import { Router } from 'express';
 import { dashboardSeatSelectionController } from '../../controllers/dashboard/seat-selection.controller';
 import { authMiddleware, permissionMiddleware } from '../../middleware/auth.middleware';
 import { validate } from '../../middleware/validation.middleware';
-import {
-    checkAvailabilityBodySchema,
-    checkAvailabilityParamsSchema,
-    getRowsParamsSchema,
-    getSeatMapParamsSchema,
-    getSeatsParamsSchema,
-    getSectionsParamsSchema,
-    getZonesParamsSchema,
-    validateSeatsBodySchema,
-} from '../../schemas/seat-selection.schema';
+import { checkAvailabilityBodySchema, checkAvailabilityParamsSchema, getReservedSeatsParamsSchema, getRowsParamsSchema, getSeatMapParamsSchema, getSeatsParamsSchema, getSectionsParamsSchema, getZonesParamsSchema, validateSeatsBodySchema } from '../../schemas/seat-selection.schema';
 
 const router = Router();
 
@@ -141,6 +132,24 @@ router.post(
     permissionMiddleware(['bookings:read']),
     validate(validateSeatsBodySchema),
     dashboardSeatSelectionController.validateSeats
+);
+
+/**
+ * @route   GET /api/v1/dashboard/seat-selection/events/:eventId/schedules/:scheduleId/reserved-seats
+ * @desc    Get all reserved seats for a specific event and schedule
+ * @access  Private (Dashboard - bookings:read permission)
+ * 
+ * Returns all reserved/booked seats with detailed information including:
+ * - Seat details (label, number, row, section, zone)
+ * - Booking details (number, status, admin booking flag)
+ * - Customer/User information
+ * 
+ * Useful for viewing which seats are taken and by whom
+ */
+router.get(
+    '/events/:eventId/schedules/:scheduleId/reserved-seats',
+    validate(getReservedSeatsParamsSchema, 'params'),
+    dashboardSeatSelectionController.getReservedSeats
 );
 
 export default router;

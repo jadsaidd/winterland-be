@@ -966,6 +966,142 @@ export class SeatSelectionRepository {
             },
         });
     }
+
+    /**
+     * Get all reserved seats for a schedule
+     * Returns detailed information about each reserved seat including booking info
+     */
+    async getReservedSeatsForSchedule(scheduleId: string): Promise<Array<{
+        id: string;
+        seatId: string;
+        isAdminLocked: boolean;
+        isReserved: boolean;
+        zoneType: ZoneType;
+        sectionPosition: SectionPosition;
+        rowNumberSnapshot: number;
+        seatNumberSnapshot: number;
+        createdAt: Date;
+        seat: {
+            id: string;
+            seatNumber: number;
+            seatLabel: string;
+            row: {
+                id: string;
+                rowNumber: number;
+                section: {
+                    id: string;
+                    position: SectionPosition;
+                    locationZone: {
+                        id: string;
+                        zone: {
+                            id: string;
+                            type: ZoneType;
+                            priority: number;
+                        };
+                    };
+                };
+            };
+        };
+        booking: {
+            id: string;
+            bookingNumber: string;
+            status: string;
+            isAdminBooking: boolean;
+            createdAt: Date;
+            user: {
+                id: string;
+                name: string | null;
+                email: string | null;
+                phoneNumber: string | null;
+            };
+        } | null;
+        user: {
+            id: string;
+            name: string | null;
+            email: string | null;
+            phoneNumber: string | null;
+        } | null;
+    }>> {
+        return await prisma.bookingSeat.findMany({
+            where: {
+                scheduleId,
+                isReserved: true,
+            },
+            select: {
+                id: true,
+                seatId: true,
+                isAdminLocked: true,
+                isReserved: true,
+                zoneType: true,
+                sectionPosition: true,
+                rowNumberSnapshot: true,
+                seatNumberSnapshot: true,
+                createdAt: true,
+                seat: {
+                    select: {
+                        id: true,
+                        seatNumber: true,
+                        seatLabel: true,
+                        row: {
+                            select: {
+                                id: true,
+                                rowNumber: true,
+                                section: {
+                                    select: {
+                                        id: true,
+                                        position: true,
+                                        locationZone: {
+                                            select: {
+                                                id: true,
+                                                zone: {
+                                                    select: {
+                                                        id: true,
+                                                        type: true,
+                                                        priority: true,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                booking: {
+                    select: {
+                        id: true,
+                        bookingNumber: true,
+                        status: true,
+                        isAdminBooking: true,
+                        createdAt: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                phoneNumber: true,
+                            },
+                        },
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phoneNumber: true,
+                    },
+                },
+            },
+            orderBy: [
+                { seat: { row: { section: { locationZone: { zone: { priority: 'asc' } } } } } },
+                { seat: { row: { section: { position: 'asc' } } } },
+                { seat: { row: { rowNumber: 'asc' } } },
+                { seat: { seatNumber: 'asc' } },
+            ],
+        });
+    }
 }
 
 export default new SeatSelectionRepository();

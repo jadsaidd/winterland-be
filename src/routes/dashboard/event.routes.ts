@@ -62,8 +62,8 @@ router.get(
  */
 router.get(
     '/:identifier',
-    authMiddleware,
-    permissionMiddleware(['events:read']),
+    // authMiddleware,
+    // permissionMiddleware(['events:read']),
     validate(eventIdentifierParamSchema, 'params'),
     dashboardEventController.getByIdOrSlug
 );

@@ -70,6 +70,15 @@ export const validateSeatsBodySchema = z.object({
     scheduleId: z.string().cuid('Invalid schedule ID format'),
 });
 
+/**
+ * Schema for getting reserved seats
+ * GET /api/v1/dashboard/seat-selection/events/:eventId/schedules/:scheduleId/reserved-seats
+ */
+export const getReservedSeatsParamsSchema = z.object({
+    eventId: z.string().cuid('Invalid event ID format'),
+    scheduleId: z.string().cuid('Invalid schedule ID format'),
+});
+
 // Export types
 export type GetZonesParams = z.infer<typeof getZonesParamsSchema>;
 export type GetSectionsParams = z.infer<typeof getSectionsParamsSchema>;
@@ -79,3 +88,4 @@ export type GetSeatMapParams = z.infer<typeof getSeatMapParamsSchema>;
 export type CheckAvailabilityParams = z.infer<typeof checkAvailabilityParamsSchema>;
 export type CheckAvailabilityBody = z.infer<typeof checkAvailabilityBodySchema>;
 export type ValidateSeatsBody = z.infer<typeof validateSeatsBodySchema>;
+export type GetReservedSeatsParams = z.infer<typeof getReservedSeatsParamsSchema>;

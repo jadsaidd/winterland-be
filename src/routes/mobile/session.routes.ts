@@ -33,13 +33,12 @@ router.post(
 /**
  * @route   GET /api/v1/mobile/sessions/:sessionId
  * @desc    Get session by ID with all seat details
- * @access  Private (authenticated users, session owner only)
+ * @access  Public
  * @params  sessionId: string
  * @returns Session details with seats, pricing, and totals
  */
 router.get(
     '/:sessionId',
-    authMiddleware,
     validate(sessionIdParamSchema, 'params'),
     sessionController.getSession
 );
@@ -47,7 +46,7 @@ router.get(
 /**
  * @route   POST /api/v1/mobile/sessions/:sessionId/seats/toggle
  * @desc    Toggle a seat in session (add if not exists, remove if exists)
- * @access  Private (authenticated users, session owner only)
+ * @access  Public
  * @params  sessionId: string
  * @body    { sectionPosition: CENTER|LEFT|RIGHT, zoneType: VVIP|VIP|REGULAR|ECONOMY, rowNumber: number, seatNumber: number }
  * @returns { action: 'added'|'removed', seat: {...} }
@@ -59,7 +58,6 @@ router.get(
  */
 router.post(
     '/:sessionId/seats/toggle',
-    authMiddleware,
     validate(sessionIdParamSchema, 'params'),
     validate(toggleSeatSchema),
     sessionController.toggleSeat
@@ -68,13 +66,12 @@ router.post(
 /**
  * @route   DELETE /api/v1/mobile/sessions/:sessionId/seats
  * @desc    Remove a specific seat from session
- * @access  Private (authenticated users, session owner only)
+ * @access  Public
  * @params  sessionId: string
  * @body    { sectionPosition: CENTER|LEFT|RIGHT, zoneType: VVIP|VIP|REGULAR|ECONOMY, rowNumber: number, seatNumber: number }
  */
 router.delete(
     '/:sessionId/seats',
-    authMiddleware,
     validate(sessionIdParamSchema, 'params'),
     validate(toggleSeatSchema),
     sessionController.removeSeat
@@ -83,12 +80,11 @@ router.delete(
 /**
  * @route   DELETE /api/v1/mobile/sessions/:sessionId/seats/all
  * @desc    Clear all seats from session (keeps session active)
- * @access  Private (authenticated users, session owner only)
+ * @access  Public
  * @params  sessionId: string
  */
 router.delete(
     '/:sessionId/seats/all',
-    authMiddleware,
     validate(sessionIdParamSchema, 'params'),
     sessionController.clearSessionSeats
 );
@@ -96,12 +92,11 @@ router.delete(
 /**
  * @route   DELETE /api/v1/mobile/sessions/:sessionId
  * @desc    Cancel session and clear all seats
- * @access  Private (authenticated users, session owner only)
+ * @access  Public
  * @params  sessionId: string
  */
 router.delete(
     '/:sessionId',
-    authMiddleware,
     validate(cancelSessionParamSchema, 'params'),
     sessionController.cancelSession
 );

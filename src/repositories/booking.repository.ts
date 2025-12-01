@@ -648,7 +648,7 @@ export class BookingRepository {
      * Find booking by ID with full details (dashboard version)
      */
     async findByIdWithFullDetails(bookingId: string) {
-        return await prisma.booking.findUnique({
+        const booking = await prisma.booking.findUnique({
             where: { id: bookingId },
             include: {
                 event: {
@@ -727,6 +727,15 @@ export class BookingRepository {
                         name: true,
                         email: true,
                         phoneNumber: true,
+                        countryCode: {
+                            select: {
+                                id: true,
+                                country: true,
+                                code: true,
+                                isoCode: true,
+                                flagUrl: true,
+                            },
+                        },
                         userApplicationData: {
                             select: {
                                 isGuestUser: true,
@@ -753,6 +762,26 @@ export class BookingRepository {
                 },
             },
         });
+
+        // If booking exists and was created by admin, fetch admin details
+        if (booking && booking.bookedByAdminId) {
+            const bookedByAdmin = await prisma.user.findUnique({
+                where: { id: booking.bookedByAdminId },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phoneNumber: true,
+                },
+            });
+
+            return {
+                ...booking,
+                bookedByAdmin,
+            };
+        }
+
+        return booking ? { ...booking, bookedByAdmin: null } : null;
     }
 
     /**

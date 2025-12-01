@@ -8,7 +8,7 @@ const simpleImportSort = require('eslint-plugin-simple-import-sort');
 module.exports = [
     // Ignore patterns
     {
-        ignores: ['dist/**', 'node_modules/**', 'eslint.config.js', 'prisma/**']
+        ignores: ['dist/**', 'node_modules/**', 'eslint.config.js', 'prisma/**', 'scripts/**']
     },
     // Base ESLint recommended rules
     eslint.configs.recommended,

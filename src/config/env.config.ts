@@ -31,6 +31,9 @@ interface Config {
 
   // Client URLs
   CLIENT_SESSION_URL: string;
+
+  // Email Service
+  RESEND_API_KEY: string;
 }
 
 // Required environment variables
@@ -75,6 +78,9 @@ const config: Config = {
 
   // Client URLs
   CLIENT_SESSION_URL: process.env.CLIENT_SESSION_URL || 'https://winterland.ae/seats',
+
+  // Email Service
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
 };
 
 export default config;

@@ -6,7 +6,7 @@ export interface UserData {
     email?: string;
     phoneNumber?: string;
     name: string;
-    countryCode: string; // Country code like '+961'
+    countryCode?: string; // Country code like '+961'
     platform: 'Mobile' | 'Dashboard';
     isVerified: boolean;
     isEmailVerified: boolean;
@@ -18,23 +18,21 @@ export interface UserData {
 
 export const usersData: UserData[] = [
     {
-        email: 'khaled18saeed@gmail.com',
-        phoneNumber: '81675578',
-        name: 'IT Admin',
-        countryCode: '+961', // Lebanon
+        email: 'admin@winterland-alain.ae',
+        name: 'Winterland Admin',
         platform: 'Dashboard',
         isVerified: true,
         isEmailVerified: true,
         isPhoneVerified: true,
         status: 'ACTIVE',
-        roles: ['IT'],
+        roles: ['IT', 'Worker'],
         isTestUser: true,
     },
     {
         email: 'worker@example.com',
         phoneNumber: '70000001',
         name: 'Worker User',
-        countryCode: '+961', // Lebanon
+        countryCode: '+961',
         platform: 'Dashboard',
         isVerified: true,
         isEmailVerified: true,

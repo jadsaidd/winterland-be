@@ -2,8 +2,11 @@ import { NextFunction, Request, Response } from 'express';
 
 import {
     AdminBookingInput,
+    AssignBookingInput,
+    AssignBulkBookingsInput,
     CancelBookingInput,
     GetDashboardBookingsQuery,
+    PreReserveBookingInput,
     UpdateBookingStatusInput,
 } from '../../schemas/dashboard-booking.schema';
 import dashboardBookingService from '../../services/dashboard-booking.service';
@@ -65,6 +68,10 @@ export class DashboardBookingController {
 
             if (query.isAdminBooking) {
                 filters.isAdminBooking = query.isAdminBooking === 'true';
+            }
+
+            if (query.isPreReserved) {
+                filters.isPreReserved = query.isPreReserved === 'true';
             }
 
             if (query.startDate) {
@@ -130,6 +137,72 @@ export class DashboardBookingController {
             const { reason }: CancelBookingInput = req.body;
 
             const result = await dashboardBookingService.cancelBooking(id, reason);
+
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    // ==================== PRE-RESERVED BOOKING ENDPOINTS ====================
+
+    /**
+     * Pre-reserve bookings
+     * POST /api/v1/dashboard/bookings/pre-reserve
+     * 
+     * Creates bulk pre-reserved bookings with placeholder guest users.
+     * Each booking gets its own guest user named "Guest - {bookingNumber}".
+     * 
+     * For non-seated events: Creates N bookings (one per quantity unit)
+     * For seated events: Creates one booking per seat
+     */
+    preReserve = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const adminId = req.user.id;
+            const preReserveData: PreReserveBookingInput = req.body;
+
+            const result = await dashboardBookingService.preReserveBookings(adminId, preReserveData);
+
+            res.status(201).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Assign a pre-reserved booking to a user
+     * POST /api/v1/dashboard/bookings/:id/assign
+     * 
+     * Links a pre-reserved booking to an existing or new user.
+     * If user with email/phone exists, links to existing user.
+     * Otherwise creates a new user and links the booking.
+     * Deletes the unused guest user after assignment.
+     */
+    assignBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const assignData: AssignBookingInput = req.body;
+
+            const result = await dashboardBookingService.assignBooking(id, assignData);
+
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Bulk assign pre-reserved bookings
+     * POST /api/v1/dashboard/bookings/assign-bulk
+     * 
+     * Assigns multiple pre-reserved bookings to users in a single request.
+     * Each assignment can link to an existing or new user.
+     */
+    assignBulkBookings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const assignData: AssignBulkBookingsInput = req.body;
+
+            const result = await dashboardBookingService.assignBulkBookings(assignData);
 
             res.status(200).json(result);
         } catch (error) {

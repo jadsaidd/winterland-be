@@ -71,11 +71,12 @@ export const rolesData: RoleData[] = [
             'support-tickets:read',
             'support-tickets:update',
             'support-tickets:delete',
-            // Bookings
             'bookings:create',
             'bookings:read',
             'bookings:update',
             'bookings:delete',
+            'bookings:assign',
+            'bookings:pre-reserve',
         ],
     },
     {

@@ -725,6 +725,9 @@ model Booking {
   isAdminBooking  Boolean @default(false)
   bookedByAdminId String? // Admin user who created this booking
 
+  // Pre-reserved booking tracking
+  isPreReserved Boolean @default(false) // Booking created for future assignment to a user
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

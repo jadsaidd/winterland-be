@@ -5,40 +5,106 @@ import { prisma } from '../utils/prisma.client';
 
 export class BookingRepository {
     /**
-     * Generate unique booking number with format: WL-YYYYMMDD-XXXX
+     * Generate random alphanumeric code
+     * Uses uppercase letters (excluding O, I, L) and numbers (excluding 0, 1) for readability
+     * @param length Length of the code to generate
+     * @returns Random alphanumeric string
+     */
+    private generateRandomCode(length: number): string {
+        // Characters that are easy to read and distinguish
+        // Excludes: O (looks like 0), I (looks like 1), L (looks like 1), 0 (looks like O), 1 (looks like I/L)
+        const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    /**
+     * Generate unique booking number with format: WL-XXXXXX
+     * Uses random 6-character alphanumeric code for uniqueness
      * @returns Unique booking number
      */
     async generateBookingNumber(): Promise<string> {
-        const today = new Date();
-        const dateStr = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        const prefix = 'WL-';
+        let bookingNumber: string;
+        let attempts = 0;
+        const maxAttempts = 10;
 
-        // Find the latest booking for today
-        const prefix = `WL-${dateStr}-`;
-        const latestBooking = await prisma.booking.findFirst({
-            where: {
-                bookingNumber: {
-                    startsWith: prefix,
+        // Generate random booking number and check for uniqueness
+        do {
+            const randomCode = this.generateRandomCode(6);
+            bookingNumber = `${prefix}${randomCode}`;
+
+            const existing = await prisma.booking.findFirst({
+                where: {
+                    bookingNumber,
                 },
-            },
-            orderBy: {
-                bookingNumber: 'desc',
-            },
+                select: {
+                    id: true,
+                },
+            });
+
+            if (!existing) {
+                return bookingNumber;
+            }
+
+            attempts++;
+        } while (attempts < maxAttempts);
+
+        // Fallback: use timestamp + random for guaranteed uniqueness
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const randomSuffix = this.generateRandomCode(3);
+        return `${prefix}${timestamp}${randomSuffix}`;
+    }
+
+    /**
+     * Generate multiple unique booking numbers with format: WL-XXXXXX
+     * Used for bulk booking creation to avoid duplicate numbers
+     * @param count Number of booking numbers to generate
+     * @returns Array of unique booking numbers
+     */
+    async generateBulkBookingNumbers(count: number): Promise<string[]> {
+        const prefix = 'WL-';
+        const bookingNumbers: string[] = [];
+        const generatedCodes = new Set<string>();
+
+        // Get all existing booking numbers to check against
+        const existingBookings = await prisma.booking.findMany({
             select: {
                 bookingNumber: true,
             },
         });
+        const existingNumbers = new Set(existingBookings.map((b: { bookingNumber: string }) => b.bookingNumber));
 
-        let sequence = 1;
-        if (latestBooking) {
-            // Extract sequence number from the last booking
-            const lastSequence = latestBooking.bookingNumber.split('-')[2];
-            sequence = parseInt(lastSequence, 10) + 1;
+        let attempts = 0;
+        const maxAttemptsPerNumber = 10;
+
+        while (bookingNumbers.length < count) {
+            const randomCode = this.generateRandomCode(6);
+            const bookingNumber = `${prefix}${randomCode}`;
+
+            // Check if this number is unique (not in DB and not already generated in this batch)
+            if (!existingNumbers.has(bookingNumber) && !generatedCodes.has(bookingNumber)) {
+                bookingNumbers.push(bookingNumber);
+                generatedCodes.add(bookingNumber);
+                attempts = 0; // Reset attempts counter for next number
+            } else {
+                attempts++;
+                if (attempts >= maxAttemptsPerNumber) {
+                    // Fallback: use timestamp + random for guaranteed uniqueness
+                    const timestamp = Date.now().toString(36).toUpperCase();
+                    const randomSuffix = this.generateRandomCode(3);
+                    const fallbackNumber = `${prefix}${timestamp}${randomSuffix}`;
+                    bookingNumbers.push(fallbackNumber);
+                    generatedCodes.add(fallbackNumber);
+                    attempts = 0;
+                }
+            }
         }
 
-        // Format sequence with leading zeros (0001, 0002, etc.)
-        const sequenceStr = sequence.toString().padStart(4, '0');
-
-        return `${prefix}${sequenceStr}`;
+        return bookingNumbers;
     }
 
     /**
@@ -523,6 +589,7 @@ export class BookingRepository {
             scheduleId?: string;
             userId?: string;
             isAdminBooking?: boolean;
+            isPreReserved?: boolean;
             startDate?: Date;
             endDate?: Date;
             search?: string;
@@ -552,6 +619,10 @@ export class BookingRepository {
 
         if (filters?.isAdminBooking !== undefined) {
             where.isAdminBooking = filters.isAdminBooking;
+        }
+
+        if (filters?.isPreReserved !== undefined) {
+            where.isPreReserved = filters.isPreReserved;
         }
 
         // Date range filter (by booking creation date)
@@ -648,7 +719,7 @@ export class BookingRepository {
      * Find booking by ID with full details (dashboard version)
      */
     async findByIdWithFullDetails(bookingId: string) {
-        return await prisma.booking.findUnique({
+        const booking = await prisma.booking.findUnique({
             where: { id: bookingId },
             include: {
                 event: {
@@ -727,6 +798,15 @@ export class BookingRepository {
                         name: true,
                         email: true,
                         phoneNumber: true,
+                        countryCode: {
+                            select: {
+                                id: true,
+                                country: true,
+                                code: true,
+                                isoCode: true,
+                                flagUrl: true,
+                            },
+                        },
                         userApplicationData: {
                             select: {
                                 isGuestUser: true,
@@ -753,6 +833,26 @@ export class BookingRepository {
                 },
             },
         });
+
+        // If booking exists and was created by admin, fetch admin details
+        if (booking && booking.bookedByAdminId) {
+            const bookedByAdmin = await prisma.user.findUnique({
+                where: { id: booking.bookedByAdminId },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phoneNumber: true,
+                },
+            });
+
+            return {
+                ...booking,
+                bookedByAdmin,
+            };
+        }
+
+        return booking ? { ...booking, bookedByAdmin: null } : null;
     }
 
     /**
@@ -779,6 +879,220 @@ export class BookingRepository {
             });
 
             return booking;
+        });
+    }
+
+    // ==================== PRE-RESERVED BOOKING METHODS ====================
+
+    /**
+     * Create pre-reserved booking for non-seated event (single booking)
+     */
+    async createPreReservedBooking(data: {
+        bookingNumber: string;
+        userId: string;
+        eventId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        currency: string;
+        status: BookingStatus;
+        isAdminBooking: boolean;
+        bookedByAdminId: string;
+        isPreReserved: boolean;
+    }): Promise<Booking> {
+        return await prisma.booking.create({
+            data,
+        });
+    }
+
+    /**
+     * Create bulk pre-reserved bookings for non-seated event (transaction)
+     * Creates multiple bookings each with quantity 1
+     */
+    async createBulkPreReservedBookings(
+        bookingsData: Array<{
+            bookingNumber: string;
+            userId: string;
+            eventId: string;
+            quantity: number;
+            unitPrice: number;
+            totalPrice: number;
+            currency: string;
+            status: BookingStatus;
+            isAdminBooking: boolean;
+            bookedByAdminId: string;
+            isPreReserved: boolean;
+        }>
+    ): Promise<Booking[]> {
+        return await prisma.$transaction(async (tx: any) => {
+            const bookings: Booking[] = [];
+            for (const data of bookingsData) {
+                const booking = await tx.booking.create({ data });
+                bookings.push(booking);
+            }
+            return bookings;
+        });
+    }
+
+    /**
+     * Create pre-reserved booking with single seat reservation (transaction)
+     */
+    async createPreReservedBookingWithSeat(data: {
+        bookingNumber: string;
+        userId: string;
+        eventId: string;
+        scheduleId: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        currency: string;
+        status: BookingStatus;
+        isAdminBooking: boolean;
+        bookedByAdminId: string;
+        isPreReserved: boolean;
+        seat: {
+            seatId: string;
+            zoneType: ZoneType;
+            sectionPosition: SectionPosition;
+            rowNumber: number;
+            seatNumber: number;
+        };
+    }): Promise<Booking> {
+        return await prisma.$transaction(async (tx: any) => {
+            // Create booking
+            const booking = await tx.booking.create({
+                data: {
+                    bookingNumber: data.bookingNumber,
+                    userId: data.userId,
+                    eventId: data.eventId,
+                    scheduleId: data.scheduleId,
+                    quantity: data.quantity,
+                    unitPrice: data.unitPrice,
+                    totalPrice: data.totalPrice,
+                    currency: data.currency,
+                    status: data.status,
+                    isAdminBooking: data.isAdminBooking,
+                    bookedByAdminId: data.bookedByAdminId,
+                    isPreReserved: data.isPreReserved,
+                },
+            });
+
+            // Create booking seat
+            await tx.bookingSeat.create({
+                data: {
+                    seatId: data.seat.seatId,
+                    scheduleId: data.scheduleId,
+                    userId: data.userId,
+                    bookingId: booking.id,
+                    isAdminLocked: true,
+                    isReserved: true,
+                    zoneType: data.seat.zoneType,
+                    sectionPosition: data.seat.sectionPosition,
+                    rowNumberSnapshot: data.seat.rowNumber,
+                    seatNumberSnapshot: data.seat.seatNumber,
+                },
+            });
+
+            return booking;
+        });
+    }
+
+    /**
+     * Assign booking to a user (transfer from guest user)
+     * Returns the previous guest user ID for cleanup
+     */
+    async assignBookingToUser(
+        bookingId: string,
+        newUserId: string
+    ): Promise<{ booking: Booking; previousUserId: string }> {
+        return await prisma.$transaction(async (tx: any) => {
+            // Get current booking
+            const currentBooking = await tx.booking.findUnique({
+                where: { id: bookingId },
+                select: { userId: true },
+            });
+
+            if (!currentBooking) {
+                throw new Error('Booking not found');
+            }
+
+            const previousUserId = currentBooking.userId;
+
+            // Update booking with new user
+            const booking = await tx.booking.update({
+                where: { id: bookingId },
+                data: {
+                    userId: newUserId,
+                    isPreReserved: false, // No longer pre-reserved after assignment
+                },
+            });
+
+            // Update booking seats if any
+            await tx.bookingSeat.updateMany({
+                where: { bookingId },
+                data: { userId: newUserId },
+            });
+
+            return { booking, previousUserId };
+        });
+    }
+
+    /**
+     * Delete a guest user (used after booking reassignment)
+     * Only deletes if user is a guest and has no other bookings
+     */
+    async deleteGuestUserIfUnused(userId: string): Promise<boolean> {
+        // Check if user is a guest user and has no other bookings
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                userApplicationData: {
+                    select: { isGuestUser: true },
+                },
+                bookings: {
+                    select: { id: true },
+                    take: 1,
+                },
+            },
+        });
+
+        if (!user) return false;
+
+        // Only delete if it's a guest user with no bookings
+        const isGuestUser = user.userApplicationData?.isGuestUser ?? false;
+        const hasNoBookings = user.bookings.length === 0;
+
+        if (isGuestUser && hasNoBookings) {
+            await prisma.user.delete({
+                where: { id: userId },
+            });
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Find pre-reserved booking by ID
+     */
+    async findPreReservedById(bookingId: string): Promise<Booking | null> {
+        return await prisma.booking.findFirst({
+            where: {
+                id: bookingId,
+                isPreReserved: true,
+                isActive: true,
+            },
+        });
+    }
+
+    /**
+     * Update booking user name (for guest user name update)
+     */
+    async updateBookingUserName(userId: string, name: string): Promise<void> {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { name },
         });
     }
 }

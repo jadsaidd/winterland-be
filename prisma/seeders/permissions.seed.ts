@@ -96,6 +96,8 @@ export const permissionsData: PermissionData[] = [
     { name: 'bookings:read', resource: 'bookings', action: 'read' },
     { name: 'bookings:update', resource: 'bookings', action: 'update' },
     { name: 'bookings:delete', resource: 'bookings', action: 'delete' },
+    { name: 'bookings:pre-reserve', resource: 'bookings', action: 'pre-reserve' },
+    { name: 'bookings:assign', resource: 'bookings', action: 'assign' },
 ];
 
 export async function seedPermissions() {

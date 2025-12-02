@@ -45,15 +45,15 @@ export const paymentMethodsData: PaymentMethodData[] = [
     },
     {
         name: {
-            en: 'Wallet',
-            ar: 'محفظة',
+            en: 'Card',
+            ar: 'بطاقة',
         },
         description: {
-            en: 'Pay using your digital wallet',
-            ar: 'الدفع باستخدام محفظتك الرقمية',
+            en: 'Pay using your credit or debit card',
+            ar: 'الدفع باستخدام بطاقتك الائتمانية أو بطاقة الخصم',
         },
         isActive: true,
-        mediaUrl: 'https://www.svgrepo.com/show/532457/wallet.svg',
+        mediaUrl: 'https://www.svgrepo.com/show/447722/online-payment.svg',
         mediaType: 'IMAGE',
     },
 ];

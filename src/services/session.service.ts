@@ -59,17 +59,13 @@ export class SessionService {
 
     /**
      * Get session by ID with full details
-     * Validates that session belongs to user and is pending
+     * Public endpoint - no user validation required
      */
-    async getSession(userId: string, sessionId: string) {
+    async getSession(sessionId: string) {
         const session = await this.sessionRepository.findByIdWithDetails(sessionId);
 
         if (!session) {
             throw new NotFoundException('Session not found');
-        }
-
-        if (session.userId !== userId) {
-            throw new BadRequestException('Session does not belong to this user');
         }
 
         // Format the response with seat details
@@ -145,9 +141,9 @@ export class SessionService {
 
     /**
      * Toggle seat in session (add if not exists, remove if exists)
+     * Public endpoint - no user validation required
      */
     async toggleSeat(
-        userId: string,
         sessionId: string,
         seatData: {
             zoneType: ZoneType;
@@ -161,10 +157,6 @@ export class SessionService {
 
         if (!session) {
             throw new NotFoundException('Session not found');
-        }
-
-        if (session.userId !== userId) {
-            throw new BadRequestException('Session does not belong to this user');
         }
 
         if (session.status !== SeatsSessionStatus.PENDING) {
@@ -237,9 +229,9 @@ export class SessionService {
 
     /**
      * Remove a specific seat from session
+     * Public endpoint - no user validation required
      */
     async removeSeat(
-        userId: string,
         sessionId: string,
         seatData: {
             zoneType: ZoneType;
@@ -253,10 +245,6 @@ export class SessionService {
 
         if (!session) {
             throw new NotFoundException('Session not found');
-        }
-
-        if (session.userId !== userId) {
-            throw new BadRequestException('Session does not belong to this user');
         }
 
         if (session.status !== SeatsSessionStatus.PENDING) {
@@ -307,16 +295,13 @@ export class SessionService {
 
     /**
      * Cancel a session (set status to CANCELLED and clear seats)
+     * Public endpoint - no user validation required
      */
-    async cancelSession(userId: string, sessionId: string) {
+    async cancelSession(sessionId: string) {
         const session = await this.sessionRepository.findById(sessionId);
 
         if (!session) {
             throw new NotFoundException('Session not found');
-        }
-
-        if (session.userId !== userId) {
-            throw new BadRequestException('Session does not belong to this user');
         }
 
         if (session.status !== SeatsSessionStatus.PENDING) {
@@ -337,16 +322,13 @@ export class SessionService {
 
     /**
      * Clear all seats from a session (keep session active)
+     * Public endpoint - no user validation required
      */
-    async clearSessionSeats(userId: string, sessionId: string) {
+    async clearSessionSeats(sessionId: string) {
         const session = await this.sessionRepository.findById(sessionId);
 
         if (!session) {
             throw new NotFoundException('Session not found');
-        }
-
-        if (session.userId !== userId) {
-            throw new BadRequestException('Session does not belong to this user');
         }
 
         if (session.status !== SeatsSessionStatus.PENDING) {

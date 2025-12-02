@@ -33,9 +33,8 @@ export class SessionController {
     getSession = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { sessionId } = req.params;
-            const userId = req.user.id;
 
-            const session = await this.sessionService.getSession(userId, sessionId);
+            const session = await this.sessionService.getSession(sessionId);
 
             res.status(200).json({
                 success: true,
@@ -53,10 +52,9 @@ export class SessionController {
     toggleSeat = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { sessionId } = req.params;
-            const userId = req.user.id;
             const seatData: ToggleSeatInput = req.body;
 
-            const result = await this.sessionService.toggleSeat(userId, sessionId, seatData);
+            const result = await this.sessionService.toggleSeat(sessionId, seatData);
 
             res.status(200).json({
                 success: true,
@@ -74,10 +72,9 @@ export class SessionController {
     removeSeat = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { sessionId } = req.params;
-            const userId = req.user.id;
             const seatData: ToggleSeatInput = req.body;
 
-            const result = await this.sessionService.removeSeat(userId, sessionId, seatData);
+            const result = await this.sessionService.removeSeat(sessionId, seatData);
 
             res.status(200).json({
                 success: true,
@@ -95,9 +92,8 @@ export class SessionController {
     clearSessionSeats = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { sessionId } = req.params;
-            const userId = req.user.id;
 
-            const result = await this.sessionService.clearSessionSeats(userId, sessionId);
+            const result = await this.sessionService.clearSessionSeats(sessionId);
 
             res.status(200).json({
                 success: true,
@@ -115,9 +111,8 @@ export class SessionController {
     cancelSession = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { sessionId } = req.params;
-            const userId = req.user.id;
 
-            const result = await this.sessionService.cancelSession(userId, sessionId);
+            const result = await this.sessionService.cancelSession(sessionId);
 
             res.status(200).json({
                 success: true,

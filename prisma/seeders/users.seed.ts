@@ -50,14 +50,19 @@ export async function seedUsers() {
         const createdUsers = [];
 
         for (const userData of usersData) {
-            // Get the country code
-            const countryCode = await prisma.countryCode.findUnique({
-                where: { code: userData.countryCode },
-            });
+            // Get the country code if provided
+            let countryCodeId: string | undefined = undefined;
 
-            if (!countryCode) {
-                console.warn(`Country code ${userData.countryCode} not found, skipping user ${userData.email || userData.phoneNumber}`);
-                continue;
+            if (userData.countryCode) {
+                const countryCode = await prisma.countryCode.findUnique({
+                    where: { code: userData.countryCode },
+                });
+
+                if (!countryCode) {
+                    console.warn(`Country code ${userData.countryCode} not found, skipping user ${userData.email || userData.phoneNumber}`);
+                    continue;
+                }
+                countryCodeId = countryCode.id;
             }
 
             // Upsert user (by email or phone)
@@ -71,7 +76,7 @@ export async function seedUsers() {
                     name: userData.name,
                     phoneNumber: userData.phoneNumber,
                     email: userData.email,
-                    countryCodeId: countryCode.id,
+                    countryCodeId: countryCodeId,
                     platform: userData.platform,
                     isVerified: userData.isVerified,
                     isEmailVerified: userData.isEmailVerified,
@@ -83,7 +88,7 @@ export async function seedUsers() {
                     email: userData.email,
                     phoneNumber: userData.phoneNumber,
                     name: userData.name,
-                    countryCodeId: countryCode.id,
+                    countryCodeId: countryCodeId,
                     platform: userData.platform,
                     isVerified: userData.isVerified,
                     isEmailVerified: userData.isEmailVerified,

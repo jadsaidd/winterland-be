@@ -344,46 +344,184 @@ export class EventRepository {
      * Get event statistics
      */
     async getStatistics() {
-        const [total, active, inactive, upcoming, ongoing, past] = await Promise.all([
-            prisma.event.count(),
-            prisma.event.count({ where: { active: true } }),
-            prisma.event.count({ where: { active: false } }),
-            prisma.event.count({
-                where: {
-                    active: true,
-                    startAt: {
-                        gt: new Date(),
-                    },
-                },
-            }),
-            prisma.event.count({
-                where: {
-                    active: true,
-                    startAt: {
-                        lte: new Date(),
-                    },
-                    endAt: {
-                        gte: new Date(),
-                    },
-                },
-            }),
-            prisma.event.count({
-                where: {
-                    active: true,
-                    endAt: {
-                        lt: new Date(),
-                    },
-                },
-            }),
-        ]);
+        const now = new Date();
 
-        return {
+        const [
             total,
             active,
             inactive,
             upcoming,
             ongoing,
             past,
+            withSeats,
+            withoutSeats,
+            totalBookings,
+            totalBookingRevenue,
+            categoryStats,
+            locationStats,
+            bookingStatusStats,
+        ] = await Promise.all([
+            // Event counts
+            prisma.event.count(),
+            prisma.event.count({ where: { active: true } }),
+            prisma.event.count({ where: { active: false } }),
+            prisma.event.count({
+                where: {
+                    active: true,
+                    startAt: { gt: now },
+                },
+            }),
+            prisma.event.count({
+                where: {
+                    active: true,
+                    startAt: { lte: now },
+                    endAt: { gte: now },
+                },
+            }),
+            prisma.event.count({
+                where: {
+                    active: true,
+                    endAt: { lt: now },
+                },
+            }),
+            prisma.event.count({ where: { haveSeats: true } }),
+            prisma.event.count({ where: { haveSeats: false } }),
+
+            // Booking statistics
+            prisma.booking.count(),
+            prisma.booking.aggregate({
+                _sum: {
+                    totalPrice: true,
+                },
+            }),
+
+            // Category statistics - top 5 categories by event count
+            prisma.eventCategory.groupBy({
+                by: ['categoryId'],
+                _count: {
+                    categoryId: true,
+                },
+                orderBy: {
+                    _count: {
+                        categoryId: 'desc',
+                    },
+                },
+                take: 5,
+            }),
+
+            // Location statistics - top 5 locations by event count
+            prisma.event.groupBy({
+                by: ['locationId'],
+                _count: {
+                    locationId: true,
+                },
+                orderBy: {
+                    _count: {
+                        locationId: 'desc',
+                    },
+                },
+                take: 5,
+            }),
+
+            // Booking status breakdown
+            prisma.booking.groupBy({
+                by: ['status'],
+                _count: {
+                    status: true,
+                },
+                _sum: {
+                    totalPrice: true,
+                    quantity: true,
+                },
+            }),
+        ]);
+
+        // Fetch category details for top categories
+        const categoryIds = categoryStats.map((stat: any) => stat.categoryId);
+        const categories = categoryIds.length > 0
+            ? await prisma.category.findMany({
+                where: { id: { in: categoryIds } },
+                select: {
+                    id: true,
+                    title: true,
+                    categorySlug: true,
+                    active: true,
+                },
+            })
+            : [];
+
+        // Fetch location details for top locations
+        const locationIds = locationStats.map((stat: any) => stat.locationId);
+        const locations = locationIds.length > 0
+            ? await prisma.location.findMany({
+                where: { id: { in: locationIds } },
+                select: {
+                    id: true,
+                    name: true,
+                    locationSlug: true,
+                    type: true,
+                    active: true,
+                },
+            })
+            : [];
+
+        // Map category stats with details
+        const topCategories = categoryStats.map((stat: any) => {
+            const category = categories.find((c: any) => c.id === stat.categoryId);
+            return {
+                categoryId: stat.categoryId,
+                categoryName: category?.title || null,
+                categorySlug: category?.categorySlug || null,
+                active: category?.active || false,
+                eventCount: stat._count.categoryId,
+            };
+        });
+
+        // Map location stats with details
+        const topLocations = locationStats.map((stat: any) => {
+            const location = locations.find((l: any) => l.id === stat.locationId);
+            return {
+                locationId: stat.locationId,
+                locationName: location?.name || null,
+                locationSlug: location?.locationSlug || null,
+                locationType: location?.type || null,
+                active: location?.active || false,
+                eventCount: stat._count.locationId,
+            };
+        });
+
+        // Format booking status stats
+        const bookingsByStatus = bookingStatusStats.map((stat: any) => ({
+            status: stat.status,
+            count: stat._count.status,
+            totalRevenue: stat._sum.totalPrice || 0,
+            totalTickets: stat._sum.quantity || 0,
+        }));
+
+        return {
+            events: {
+                total,
+                active,
+                inactive,
+                upcoming,
+                ongoing,
+                past,
+                withSeats,
+                withoutSeats,
+            },
+            categories: {
+                totalCategories: categoryIds.length,
+                topCategories,
+            },
+            locations: {
+                totalLocations: locationIds.length,
+                topLocations,
+            },
+            bookings: {
+                totalBookings,
+                totalRevenue: totalBookingRevenue._sum.totalPrice || 0,
+                byStatus: bookingsByStatus,
+            },
         };
     }
 

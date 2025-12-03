@@ -46,12 +46,53 @@ export interface MediaDto {
 }
 
 export interface EventStatisticsResponseDto {
-    total: number;
-    active: number;
-    inactive: number;
-    upcoming: number;
-    ongoing: number;
-    past: number;
+    events: {
+        total: number;
+        active: number;
+        inactive: number;
+        upcoming: number;
+        ongoing: number;
+        past: number;
+        withSeats: number;
+        withoutSeats: number;
+    };
+    categories: {
+        totalCategories: number;
+        topCategories: CategoryStatDto[];
+    };
+    locations: {
+        totalLocations: number;
+        topLocations: LocationStatDto[];
+    };
+    bookings: {
+        totalBookings: number;
+        totalRevenue: number;
+        byStatus: BookingStatusStatDto[];
+    };
+}
+
+export interface CategoryStatDto {
+    categoryId: string;
+    categoryName: { en: string; ar?: string } | null; // JSON i18n object
+    categorySlug: string | null;
+    active: boolean;
+    eventCount: number;
+}
+
+export interface LocationStatDto {
+    locationId: string;
+    locationName: { en: string; ar?: string } | null; // JSON i18n object
+    locationSlug: string | null;
+    locationType: string | null;
+    active: boolean;
+    eventCount: number;
+}
+
+export interface BookingStatusStatDto {
+    status: string;
+    count: number;
+    totalRevenue: number;
+    totalTickets: number;
 }
 
 export interface ScheduleDto {

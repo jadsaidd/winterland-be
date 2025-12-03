@@ -166,16 +166,12 @@ export class BookingRepository {
                                 },
                             },
                         },
-                        eventLocations: {
-                            include: {
-                                location: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        locationSlug: true,
-                                        type: true,
-                                    },
-                                },
+                        location: {
+                            select: {
+                                id: true,
+                                name: true,
+                                locationSlug: true,
+                                type: true,
                             },
                         },
                     },

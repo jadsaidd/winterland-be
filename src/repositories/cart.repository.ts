@@ -30,11 +30,7 @@ export class CartRepository {
                                         category: true,
                                     },
                                 },
-                                eventLocations: {
-                                    include: {
-                                        location: true,
-                                    },
-                                },
+                                location: true,
                             },
                         },
                     },
@@ -67,11 +63,7 @@ export class CartRepository {
                                         category: true,
                                     },
                                 },
-                                eventLocations: {
-                                    include: {
-                                        location: true,
-                                    },
-                                },
+                                location: true,
                             },
                         },
                     },

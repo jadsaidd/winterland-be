@@ -24,10 +24,9 @@ export class MobileBookingController {
                         ...ec,
                         category: localizeObject(ec.category, ['title'], language),
                     })),
-                    eventLocations: booking.event.eventLocations?.map((el: any) => ({
-                        ...el,
-                        location: localizeObject(el.location, ['name'], language),
-                    })),
+                    location: booking.event.location
+                        ? localizeObject(booking.event.location, ['name'], language)
+                        : null,
                 }
                 : null,
             paymentMethod: booking.paymentMethod
@@ -106,7 +105,7 @@ export class MobileBookingController {
                         ? {
                             ...booking.event,
                             eventCategories: undefined, // Remove nested for list view
-                            eventLocations: undefined, // Remove nested for list view
+                            location: undefined, // Remove nested for list view
                         }
                         : null,
                 })),

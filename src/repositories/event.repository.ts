@@ -58,6 +58,26 @@ export class EventRepository {
                         sortOrder: 'asc',
                     },
                 },
+                schedules: {
+                    orderBy: {
+                        startAt: 'asc',
+                    },
+                    include: {
+                        scheduleWorkers: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        phoneNumber: true,
+                                        profilePictureUrl: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             } : undefined,
         });
     }
@@ -97,6 +117,26 @@ export class EventRepository {
                     },
                     orderBy: {
                         sortOrder: 'asc',
+                    },
+                },
+                schedules: {
+                    orderBy: {
+                        startAt: 'asc',
+                    },
+                    include: {
+                        scheduleWorkers: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        phoneNumber: true,
+                                        profilePictureUrl: true,
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             } : undefined,
@@ -146,6 +186,7 @@ export class EventRepository {
             locationId?: string;
             startDate?: Date;
             endDate?: Date;
+            excludeExpired?: boolean;
         }
     ): Promise<PaginatedResponse<any>> {
         const skip = (page - 1) * limit;
@@ -196,6 +237,13 @@ export class EventRepository {
 
         if (filters?.locationId) {
             where.locationId = filters.locationId;
+        }
+
+        // Exclude expired events (endAt < now)
+        if (filters?.excludeExpired) {
+            where.endAt = {
+                gte: new Date(),
+            };
         }
 
         // Date range filters
@@ -486,6 +534,33 @@ export class EventRepository {
                 sortOrder: 'asc',
             },
         });
+    }
+
+    /**
+     * Mark all expired events as inactive
+     * Expired events are those with endAt < current time
+     */
+    async markExpiredEventsAsInactive(): Promise<number> {
+        const result = await prisma.event.updateMany({
+            where: {
+                endAt: {
+                    lt: new Date(),
+                },
+                active: true,
+            },
+            data: {
+                active: false,
+            },
+        });
+
+        return result.count;
+    }
+
+    /**
+     * Check if an event is expired
+     */
+    isEventExpired(event: { endAt: Date }): boolean {
+        return new Date(event.endAt) < new Date();
     }
 }
 

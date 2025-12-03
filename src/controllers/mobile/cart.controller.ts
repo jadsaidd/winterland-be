@@ -25,10 +25,9 @@ export class MobileCartController {
                         ...ec,
                         category: localizeObject(ec.category, ['title', 'description'], language),
                     })),
-                    eventLocations: item.event.eventLocations?.map((el: any) => ({
-                        ...el,
-                        location: localizeObject(el.location, ['name', 'description'], language),
-                    })),
+                    location: item.event.location
+                        ? localizeObject(item.event.location, ['name', 'description'], language)
+                        : null,
                 },
             })),
         };

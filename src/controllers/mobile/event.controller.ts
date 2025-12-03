@@ -17,9 +17,10 @@ export class MobileEventController {
             const { page, limit } = (req as any).pagination;
             const { search, categoryId, locationId, startDate, endDate } = req.query;
 
-            // Mobile only shows active events
+            // Mobile only shows active and non-expired events
             const filters: any = {
                 active: true,
+                excludeExpired: true,
             };
 
             if (search) {
@@ -86,7 +87,7 @@ export class MobileEventController {
     async getByIdOrSlug(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { identifier } = req.params;
-            const event = await eventService.getEventByIdOrSlug(identifier);
+            const event = await eventService.getEventByIdOrSlugForMobile(identifier);
 
             // Localize the response
             const language = getPreferredLanguage(req);

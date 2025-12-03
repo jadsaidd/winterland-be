@@ -14,6 +14,7 @@ export interface EventResponseDto {
     categories?: CategorySummaryDto[];
     location?: LocationSummaryDto;
     media?: MediaDto[];
+    schedules?: ScheduleDto[];
 }
 
 export interface CategorySummaryDto {
@@ -51,4 +52,29 @@ export interface EventStatisticsResponseDto {
     upcoming: number;
     ongoing: number;
     past: number;
+}
+
+export interface ScheduleDto {
+    id: string;
+    startAt: string;
+    endAt: string;
+    details?: any; // JSON object for schedule details
+    createdAt: string;
+    updatedAt: string;
+    scheduleWorkers?: ScheduleWorkerDto[];
+}
+
+export interface ScheduleWorkerDto {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    user: WorkerUserDto;
+}
+
+export interface WorkerUserDto {
+    id: string;
+    name?: string;
+    email?: string;
+    phoneNumber?: string;
+    profilePictureUrl?: string;
 }

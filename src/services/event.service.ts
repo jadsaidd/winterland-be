@@ -213,6 +213,37 @@ export class EventService {
     }
 
     /**
+     * Get event by ID or slug for mobile (excludes expired events)
+     */
+    async getEventByIdOrSlugForMobile(identifier: string): Promise<any> {
+        const event = await eventRepository.findByIdOrSlug(identifier, true);
+
+        if (!event) {
+            throw new NotFoundException('Event not found');
+        }
+
+        // Check if event is expired (endAt < now)
+        if (eventRepository.isEventExpired(event)) {
+            throw new NotFoundException('Event not found');
+        }
+
+        // Check if event is active
+        if (!event.active) {
+            throw new NotFoundException('Event not found');
+        }
+
+        return event;
+    }
+
+    /**
+     * Mark all expired events as inactive
+     * This can be called by a cron job or background task
+     */
+    async markExpiredEventsAsInactive(): Promise<number> {
+        return await eventRepository.markExpiredEventsAsInactive();
+    }
+
+    /**
      * Update event
      */
     async updateEvent(

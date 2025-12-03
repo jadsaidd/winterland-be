@@ -32,15 +32,15 @@ export const paymentMethodsData: PaymentMethodData[] = [
     },
     {
         name: {
-            en: 'Ziina',
-            ar: 'زينة',
+            en: 'Wallet',
+            ar: 'محفظة',
         },
         description: {
-            en: 'Secure electronic payment through Ziina',
-            ar: 'دفع إلكتروني آمن عبر زينة',
+            en: 'Pay using your digital wallet',
+            ar: 'الدفع باستخدام محفظتك الرقمية',
         },
         isActive: true,
-        mediaUrl: 'https://play-lh.googleusercontent.com/RlMpy5s5o8DUDmLXQ2bZklnunIAEazncahxRyFUNys1D6vbULPgODamq7axhhWbsWJE',
+        mediaUrl: 'https://www.svgrepo.com/show/532457/wallet.svg',
         mediaType: 'IMAGE',
     },
     {

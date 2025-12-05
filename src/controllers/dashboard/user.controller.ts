@@ -61,8 +61,10 @@ export class DashboardUserController {
       const status = req.query.status as 'ACTIVE' | 'SUSPENDED' | 'DELETED' | undefined;
       const isVerified = req.query.isVerified === 'true' ? true : req.query.isVerified === 'false' ? false : undefined;
       const search = req.query.search as string | undefined;
+      const guest = req.query.guest === 'true' ? true : req.query.guest === 'false' ? false : undefined;
+      const platform = req.query.platform as 'Mobile' | 'Dashboard' | undefined;
 
-      const result = await userService.getAllUsers(page, limit, status, isVerified, search);
+      const result = await userService.getAllUsers(page, limit, status, isVerified, search, guest, platform);
 
       res.status(200).json({
         success: true,

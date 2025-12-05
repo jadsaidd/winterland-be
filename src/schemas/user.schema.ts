@@ -10,6 +10,12 @@ export const getUsersQuerySchema = z.object({
     message: 'isVerified must be true or false',
   }).optional().transform((val) => val === 'true' ? true : val === 'false' ? false : undefined),
   search: z.string().min(1, 'Search term cannot be empty').optional(),
+  guest: z.enum(['true', 'false'], {
+    message: 'guest must be true or false',
+  }).optional().transform((val) => val === 'true' ? true : val === 'false' ? false : undefined),
+  platform: z.enum(['Mobile', 'Dashboard'], {
+    message: 'platform must be one of: Mobile, Dashboard',
+  }).optional(),
 });
 
 export const createUserSchema = z

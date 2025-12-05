@@ -64,10 +64,12 @@ export class UserService {
     limit: number = 10,
     status?: 'ACTIVE' | 'SUSPENDED' | 'DELETED',
     isVerified?: boolean,
-    search?: string
+    search?: string,
+    guest?: boolean,
+    platform?: 'Mobile' | 'Dashboard'
   ) {
     try {
-      const result = await userRepository.getAllUsers(page, limit, status, isVerified, search);
+      const result = await userRepository.getAllUsers(page, limit, status, isVerified, search, guest, platform);
       return result;
     } catch (error) {
       logger.error('Error getting all users:', error);
@@ -196,13 +198,14 @@ export class UserService {
         }
       }
 
-      // Create user
+      // Create user with Dashboard platform (users created from dashboard are dashboard users)
       const user = await userRepository.createUser({
         email: userData.email,
         phoneNumber: userData.phoneNumber,
         countryCodeId: userData.countryCodeId,
         name: userData.name,
         isVerified: userData.isVerified || false,
+        platform: 'Dashboard',
       });
 
       // Assign default user role

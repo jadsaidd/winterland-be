@@ -142,6 +142,8 @@ export class UserRepository {
    * @param status Optional user status filter
    * @param isVerified Optional verification status filter
    * @param search Optional search term for name, email, or phone number
+   * @param guest Optional filter for guest users (true/false)
+   * @param platform Optional filter for user platform (Mobile/Dashboard)
    * @returns Paginated list of users
    */
   async getAllUsers(
@@ -149,7 +151,9 @@ export class UserRepository {
     limit: number = 10,
     status?: 'ACTIVE' | 'SUSPENDED' | 'DELETED',
     isVerified?: boolean,
-    search?: string
+    search?: string,
+    guest?: boolean,
+    platform?: 'Mobile' | 'Dashboard'
   ): Promise<PaginatedResponse<User>> {
     try {
       const skip = (page - 1) * limit;
@@ -161,6 +165,14 @@ export class UserRepository {
       }
       if (isVerified !== undefined) {
         whereClause.isVerified = isVerified;
+      }
+      if (platform) {
+        whereClause.platform = platform;
+      }
+      if (guest !== undefined) {
+        whereClause.userApplicationData = {
+          isGuestUser: guest,
+        };
       }
 
       // Apply search filter
